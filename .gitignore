@@ -1,0 +1,19 @@
+# Gradle
+cmp/.gradle/
+cmp/build/
+cmp/bin/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Benchmark output
+benchmark_results/
+
+# Docker volumes (local only)
+data/
+
+# OS
+.DS_Store
+Thumbs.db

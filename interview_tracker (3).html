@@ -1,0 +1,1876 @@
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Senior Backend Interview Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+  header { background: #1a1d2e; border-bottom: 1px solid #2d3148; padding: 24px 32px; }
+  header h1 { font-size: 1.4rem; font-weight: 700; color: #a78bfa; margin-bottom: 4px; }
+  header p { font-size: 0.85rem; color: #64748b; }
+
+  .progress-bar-wrap { margin-top: 16px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; }
+  .progress-bar { background: #2d3148; border-radius: 99px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #7c3aed, #a78bfa); transition: width 0.4s ease; }
+
+  .filters { display: flex; gap: 8px; padding: 16px 32px; background: #0f1117; border-bottom: 1px solid #1e2235; flex-wrap: wrap; }
+  .filter-btn { padding: 5px 14px; border-radius: 99px; border: 1px solid #2d3148; background: transparent; color: #94a3b8; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+  .filter-btn.active { background: #7c3aed; border-color: #7c3aed; color: white; }
+
+  .main { padding: 24px 32px; max-width: 960px; }
+
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #64748b; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #1e2235; }
+
+  .topic-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; margin-bottom: 4px; background: #1a1d2e; border: 1px solid transparent; transition: border-color 0.15s; }
+  .topic-row:hover { border-color: #2d3148; }
+  .topic-row.done { opacity: 0.5; }
+
+  .topic-name { font-size: 0.9rem; font-weight: 500; }
+  .topic-meta { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+
+  .depth-badge { font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .depth-deep { background: #1e3a5f; color: #60a5fa; }
+  .depth-concept { background: #2d2412; color: #fbbf24; }
+
+  .status-btn { display: flex; gap: 4px; }
+  .status-btn button { padding: 4px 10px; font-size: 0.72rem; border-radius: 5px; border: 1px solid #2d3148; background: transparent; cursor: pointer; transition: all 0.15s; color: #64748b; }
+  .status-btn button:hover { border-color: #64748b; color: #e2e8f0; }
+  .status-btn button.active-todo { background: #1e2235; border-color: #475569; color: #94a3b8; }
+  .status-btn button.active-studying { background: #1c2a1c; border-color: #16a34a; color: #4ade80; }
+  .status-btn button.active-done { background: #1e1b4b; border-color: #7c3aed; color: #a78bfa; }
+
+  .stats { display: flex; gap: 16px; padding: 0 32px 0; margin-bottom: 8px; }
+  .stat { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 8px; padding: 12px 20px; text-align: center; min-width: 80px; }
+  .stat-num { font-size: 1.5rem; font-weight: 700; color: #a78bfa; }
+  .stat-label { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+
+  .hidden { display: none !important; }
+
+  /* Per-topic tasks */
+  .topic-block { margin-bottom: 4px; }
+  .topic-tasks { background: #0d1018; border: 1px solid #1e2235; border-top: none; border-radius: 0 0 8px 8px; padding: 8px 14px 10px 36px; }
+  .topic-row { border-radius: 8px; margin-bottom: 0; }
+  .topic-row.has-tasks { border-radius: 8px 8px 0 0; border-bottom-color: #1e2235 !important; }
+  .subtask-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .subtask-row input[type="checkbox"] { accent-color: #7c3aed; width: 14px; height: 14px; flex-shrink: 0; cursor: pointer; }
+  .subtask-text { flex: 1; font-size: 0.82rem; color: #94a3b8; }
+  .subtask-text.checked { text-decoration: line-through; color: #374151; }
+  .subtask-delete { background: none; border: none; color: #374151; cursor: pointer; font-size: 0.78rem; padding: 1px 5px; border-radius: 4px; transition: color 0.15s; line-height: 1; }
+  .subtask-delete:hover { color: #ef4444; }
+  .add-subtask-row { display: flex; gap: 6px; margin-top: 6px; }
+  .add-subtask-input { flex: 1; background: transparent; border: none; border-bottom: 1px dashed #2d3148; padding: 4px 2px; color: #e2e8f0; font-size: 0.8rem; outline: none; transition: border-color 0.15s; }
+  .add-subtask-input:focus { border-bottom-color: #7c3aed; }
+  .add-subtask-input::placeholder { color: #374151; }
+  .add-subtask-btn { background: none; border: none; color: #7c3aed; font-size: 0.8rem; cursor: pointer; padding: 2px 6px; }
+  .add-subtask-btn:hover { color: #a78bfa; }
+  .expand-btn { background: none; border: none; color: #4b5563; cursor: pointer; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; transition: color 0.15s; white-space: nowrap; }
+  .expand-btn:hover { color: #94a3b8; }
+  .move-btn { background: none; border: 1px solid #1e2235; color: #374151; cursor: pointer; font-size: 0.65rem; padding: 1px 5px; border-radius: 3px; line-height: 1.4; transition: all 0.15s; }
+  .move-btn:hover:not(:disabled) { border-color: #475569; color: #94a3b8; }
+  .move-btn:disabled { opacity: 0.2; cursor: default; }
+  .topic-block { position: relative; }
+  .item-delete-btn { position: absolute; top: 4px; right: 4px; background: none; border: none; color: #374151; cursor: pointer; font-size: 0.7rem; width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s, color 0.15s; line-height: 1; }
+  .topic-block:hover .item-delete-btn { opacity: 1; }
+  .item-delete-btn:hover { color: #ef4444; }
+
+  /* Add item form */
+  .add-item-form { margin-top: 10px; background: #131620; border: 1px solid #1e2235; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .add-item-form-row { display: flex; gap: 8px; }
+  .form-input { flex: 1; background: #0f1117; border: 1px solid #2d3148; border-radius: 6px; padding: 7px 11px; color: #e2e8f0; font-size: 0.82rem; outline: none; transition: border-color 0.15s; }
+  .form-input:focus { border-color: #7c3aed; }
+  .form-input::placeholder { color: #374151; }
+  .form-select { background: #0f1117; border: 1px solid #2d3148; border-radius: 6px; padding: 7px 10px; color: #94a3b8; font-size: 0.8rem; cursor: pointer; outline: none; }
+  .form-select:focus { border-color: #7c3aed; }
+  .btn-primary { background: #5b21b6; border: none; color: #e9d5ff; border-radius: 6px; padding: 7px 16px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .btn-primary:hover { background: #7c3aed; }
+
+  /* Add section form */
+  .add-section-box { margin-top: 24px; background: #131620; border: 1px dashed #2d3148; border-radius: 10px; padding: 16px 20px; }
+  .add-section-box-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #4b5563; margin-bottom: 10px; }
+  .add-section-row { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+    <div>
+      <h1>Senior Backend Interview Tracker</h1>
+      <p>PostgreSQL · SQL · Transactions · Schema Design · Distributed Systems</p>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+      <span style="font-size:0.75rem; color:#64748b;">Changes auto-save to browser. Use Save to get a portable file.</span>
+      <button onclick="saveToFile()" style="background:#2d1f5e; border:1px solid #7c3aed; color:#a78bfa; border-radius:6px; padding:5px 14px; font-size:0.75rem; cursor:pointer;">💾 Save file</button>
+    </div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-label">
+      <span>Overall Progress</span>
+      <span id="progress-text">0 / 65 done (0%)</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+</header>
+
+<div style="padding: 16px 32px 0;">
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="stat-done">0</div><div class="stat-label">Done</div></div>
+    <div class="stat"><div class="stat-num" id="stat-studying" style="color:#4ade80">8</div><div class="stat-label">Studying</div></div>
+    <div class="stat"><div class="stat-num" id="stat-todo" style="color:#64748b">57</div><div class="stat-label">To Do</div></div>
+    <div class="stat"><div class="stat-num" id="stat-deep" style="color:#60a5fa">44</div><div class="stat-label">Deep Left</div></div>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+  <button class="filter-btn" onclick="setFilter('todo', this)">To Do</button>
+  <button class="filter-btn" onclick="setFilter('studying', this)">Studying</button>
+  <button class="filter-btn" onclick="setFilter('done', this)">Done</button>
+  <button class="filter-btn" onclick="setFilter('deep', this)">Deep Only</button>
+  <button class="filter-btn" onclick="setFilter('concept', this)">Concept Only</button>
+</div>
+
+<div class="main" id="main"><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>SET UP</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('cs_1780315000033',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;opacity:0.25;pointer-events:none;">▲</button>
+          <button onclick="moveSection('cs_1780315000033',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          <button onclick="deleteSection('cs_1780315000033')" style="background:none;border:none;color:#374151;cursor:pointer;font-size:0.75rem;padding:2px 6px;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#374151'">✕</button>
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780315000033','ci_1780315019817')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">Install tools</div>
+        <div class="topic-meta">Install tools</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780315019817')">▲ 0/4</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780315019817',-1)" disabled="">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780315019817',1)">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('ci_1780315019817','todo')">📋 To Do</button><button class="" onclick="setStatus('ci_1780315019817','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780315019817','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780315019817','1780315034472')">
+        <span class="subtask-text ">Install docker</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780315019817','1780315034472')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780315019817','1780315042486')">
+        <span class="subtask-text ">Install DB Beaver</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780315019817','1780315042486')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780315019817','1780315128543')">
+        <span class="subtask-text ">Run docker compose to prepare db and schema: "cd D:\LevelUpJourney\CMP" "docker-compose up -d"</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780315019817','1780315128543')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780315019817','1780315187334')">
+        <span class="subtask-text ">Open DB Beaver and connect to DB using these information. Host:     localhost Port:     5432 Database: invoices User:     postgres Password: test123</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780315019817','1780315187334')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-ci_1780315019817" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'ci_1780315019817')">
+      <button class="add-subtask-btn" onclick="addSubtask('ci_1780315019817')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780315000033','ci_1780315226282')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">Create a stateless server</div>
+        <div class="topic-meta">Spring Boot or Express.js</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780315226282')">▲ 0/2</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780315226282',-1)">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780315226282',1)">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('ci_1780315226282','todo')">📋 To Do</button><button class="" onclick="setStatus('ci_1780315226282','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780315226282','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780315226282','1780315283918')">
+        <span class="subtask-text ">For Spring Boot: https://start.spring.io/, Gradle - Kotlin. Spring Boot v 4.0.6, Java 21</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780315226282','1780315283918')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780315226282','1780315376984')">
+        <span class="subtask-text ">For ExpressJs: Install Nodejs -&gt; npm init  or npm init -y -&gt; npm install express</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780315226282','1780315376984')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-ci_1780315226282" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'ci_1780315226282')">
+      <button class="add-subtask-btn" onclick="addSubtask('ci_1780315226282')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780315000033','ci_1780315438413')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Run the server</div>
+        <div class="topic-meta">Spring boot ( ../gradlew clean build bootRun), ExpressJs (node app.js)</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780315438413')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780315438413',-1)">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780315438413',1)">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('ci_1780315438413','todo')">📋 To Do</button><button class="" onclick="setStatus('ci_1780315438413','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780315438413','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780315000033','ci_1780315574799')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Install dependencies</div>
+        <div class="topic-meta">Spring Boot ( Lombok, Data JPA, Spring Web)</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780315574799')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780315574799',-1)">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780315574799',1)">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('ci_1780315574799','todo')">📋 To Do</button><button class="" onclick="setStatus('ci_1780315574799','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780315574799','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780315000033','ci_1780325888297')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">Create midnight cron job to sync invoices</div>
+        
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780325888297')">▲ 0/4</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780325888297',-1)">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780325888297',1)">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('ci_1780325888297','todo')">📋 To Do</button><button class="" onclick="setStatus('ci_1780325888297','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780325888297','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780325888297','1780325943715')">
+        <span class="subtask-text ">Create cron job to fetch all data on initial load, for later load fetch delta changes only using invoice_number</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780325888297','1780325943715')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780325888297','1780325968875')">
+        <span class="subtask-text ">Optimize sample Spring Boot project which have some issues with DB performance</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780325888297','1780325968875')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780325888297','1780326095153')">
+        <span class="subtask-text ">Compare optimized version using these metrics: buffers_backend, hit_ratio, checkpoints_req</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780325888297','1780326095153')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780325888297','1780326259606')">
+        <span class="subtask-text ">As a operator, It takes so long to finish sync. I have an idea is to have multiple servers perform cron job at a same time. What is the best approach to do that to prevent conflict when we have multiple instances run cron job</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780325888297','1780326259606')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-ci_1780325888297" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'ci_1780325888297')">
+      <button class="add-subtask-btn" onclick="addSubtask('ci_1780325888297')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780315000033','ci_1780326118118')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Create cron job to sync orders</div>
+        
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780326118118')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780326118118',-1)">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780315000033','ci_1780326118118',1)" disabled="">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('ci_1780326118118','todo')">📋 To Do</button><button class="" onclick="setStatus('ci_1780326118118','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780326118118','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="add-item-form">
+        <div class="add-item-form-row">
+          <input id="new-item-name-cs_1780315000033" class="form-input" placeholder="Item name…" onkeydown="handleNewItemKey(event,'cs_1780315000033')">
+          <select id="new-item-depth-cs_1780315000033" class="form-select">
+            <option value="deep">✅ Deep</option>
+            <option value="concept">⚠️ Concept</option>
+          </select>
+        </div>
+        <div class="add-item-form-row">
+          <input id="new-item-note-cs_1780315000033" class="form-input" placeholder="Note / what to know (optional)…" onkeydown="handleNewItemKey(event,'cs_1780315000033')">
+          <button class="btn-primary" onclick="addCustomItem('cs_1780315000033')">+ Add item</button>
+        </div>
+      </div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Query &amp; Performance</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('bi_Query_Performance',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('bi_Query_Performance',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('explain')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">EXPLAIN / EXPLAIN ANALYZE</div>
+        <div class="topic-meta">Read cost, actual rows, scan types, join types</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('explain')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('explain','todo')">📋 To Do</button><button class="" onclick="setStatus('explain','studying')">📖 Studying</button><button class="" onclick="setStatus('explain','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('scan_types')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Seq Scan vs Index Scan vs Index Only Scan</div>
+        <div class="topic-meta">When each happens, how to force index</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('scan_types')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('scan_types','todo')">📋 To Do</button><button class="" onclick="setStatus('scan_types','studying')">📖 Studying</button><button class="" onclick="setStatus('scan_types','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('n1')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">N+1 Problem</div>
+        <div class="topic-meta">How to detect, fix with JOIN or batch fetch</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('n1')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('n1','todo')">📋 To Do</button><button class="" onclick="setStatus('n1','studying')">📖 Studying</button><button class="" onclick="setStatus('n1','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('slow_query')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Slow Query Identification</div>
+        <div class="topic-meta">pg_stat_statements, pg_stat_activity</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('slow_query')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('slow_query','todo')">📋 To Do</button><button class="" onclick="setStatus('slow_query','studying')">📖 Studying</button><button class="" onclick="setStatus('slow_query','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('planner_stats')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Query Planner Statistics</div>
+        <div class="topic-meta">ANALYZE, why estimates go wrong</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('planner_stats')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('planner_stats','todo')">📋 To Do</button><button class="" onclick="setStatus('planner_stats','studying')">📖 Studying</button><button class="" onclick="setStatus('planner_stats','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('cursor_pagination')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Cursor-based Pagination</div>
+        <div class="topic-meta">Why OFFSET fails at scale</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('cursor_pagination')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('cursor_pagination','todo')">📋 To Do</button><button class="" onclick="setStatus('cursor_pagination','studying')">📖 Studying</button><button class="" onclick="setStatus('cursor_pagination','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Indexing</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('bi_Indexing',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('bi_Indexing',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('btree')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">B-tree Index</div>
+        <div class="topic-meta">Default, range, equality, ORDER BY</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('btree')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('btree','todo')">📋 To Do</button><button class="" onclick="setStatus('btree','studying')">📖 Studying</button><button class="" onclick="setStatus('btree','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('composite')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Composite Index</div>
+        <div class="topic-meta">Column order matters, leading column rule</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('composite')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('composite','todo')">📋 To Do</button><button class="" onclick="setStatus('composite','studying')">📖 Studying</button><button class="" onclick="setStatus('composite','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('partial')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Partial Index</div>
+        <div class="topic-meta">Index a subset of rows</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('partial')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('partial','todo')">📋 To Do</button><button class="" onclick="setStatus('partial','studying')">📖 Studying</button><button class="" onclick="setStatus('partial','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('covering')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Covering Index (INCLUDE)</div>
+        <div class="topic-meta">Avoid heap fetch</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('covering')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('covering','todo')">📋 To Do</button><button class="" onclick="setStatus('covering','studying')">📖 Studying</button><button class="" onclick="setStatus('covering','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('gin')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">GIN Index</div>
+        <div class="topic-meta">Full-text search, JSONB, arrays</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('gin')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('gin','todo')">📋 To Do</button><button class="" onclick="setStatus('gin','studying')">📖 Studying</button><button class="" onclick="setStatus('gin','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('brin')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">BRIN Index</div>
+        <div class="topic-meta">Sequential data like timestamps, very large tables</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('brin')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('brin','todo')">📋 To Do</button><button class="" onclick="setStatus('brin','studying')">📖 Studying</button><button class="" onclick="setStatus('brin','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('no_index')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">When NOT to Index</div>
+        <div class="topic-meta">Write-heavy tables, low cardinality, unused indexes</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('no_index')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('no_index','todo')">📋 To Do</button><button class="" onclick="setStatus('no_index','studying')">📖 Studying</button><button class="" onclick="setStatus('no_index','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>SQL Features</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('bi_SQL_Features',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('bi_SQL_Features',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('window')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Window Functions</div>
+        <div class="topic-meta">RANK, ROW_NUMBER, LAG, LEAD, SUM OVER, PARTITION BY</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('window')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('window','todo')">📋 To Do</button><button class="" onclick="setStatus('window','studying')">📖 Studying</button><button class="" onclick="setStatus('window','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('cte')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">CTEs (WITH)</div>
+        <div class="topic-meta">Readability, reuse, when optimizer materializes</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('cte')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('cte','todo')">📋 To Do</button><button class="" onclick="setStatus('cte','studying')">📖 Studying</button><button class="" onclick="setStatus('cte','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('recursive_cte')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Recursive CTEs</div>
+        <div class="topic-meta">Hierarchy/tree traversal</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('recursive_cte')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('recursive_cte','todo')">📋 To Do</button><button class="" onclick="setStatus('recursive_cte','studying')">📖 Studying</button><button class="" onclick="setStatus('recursive_cte','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('jsonb')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">JSONB</div>
+        <div class="topic-meta">Store, query, index semi-structured data</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('jsonb')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('jsonb','todo')">📋 To Do</button><button class="" onclick="setStatus('jsonb','studying')">📖 Studying</button><button class="" onclick="setStatus('jsonb','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('fts')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Full-text Search</div>
+        <div class="topic-meta">tsvector, tsquery, GIN index</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('fts')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('fts','todo')">📋 To Do</button><button class="" onclick="setStatus('fts','studying')">📖 Studying</button><button class="" onclick="setStatus('fts','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('lateral')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Lateral Joins</div>
+        <div class="topic-meta">Correlated subquery in FROM clause</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('lateral')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('lateral','todo')">📋 To Do</button><button class="" onclick="setStatus('lateral','studying')">📖 Studying</button><button class="" onclick="setStatus('lateral','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('upsert')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Upsert (ON CONFLICT)</div>
+        <div class="topic-meta">INSERT ... ON CONFLICT DO UPDATE</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('upsert')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('upsert','todo')">📋 To Do</button><button class="" onclick="setStatus('upsert','studying')">📖 Studying</button><button class="" onclick="setStatus('upsert','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Transactions &amp; Concurrency</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('bi_Transactions_Concurrency',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('bi_Transactions_Concurrency',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('acid')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">ACID Properties</div>
+        <div class="topic-meta">Atomicity, Consistency, Isolation, Durability</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('acid')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('acid','todo')">📋 To Do</button><button class="" onclick="setStatus('acid','studying')">📖 Studying</button><button class="" onclick="setStatus('acid','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('isolation')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Isolation Levels</div>
+        <div class="topic-meta">Read Committed, Repeatable Read, Serializable</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('isolation')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('isolation','todo')">📋 To Do</button><button class="" onclick="setStatus('isolation','studying')">📖 Studying</button><button class="" onclick="setStatus('isolation','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('read_anomalies')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Dirty / Phantom / Non-repeatable Read</div>
+        <div class="topic-meta">What each is, which level prevents it</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('read_anomalies')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('read_anomalies','todo')">📋 To Do</button><button class="" onclick="setStatus('read_anomalies','studying')">📖 Studying</button><button class="" onclick="setStatus('read_anomalies','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('row_lock')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Row-level Locking</div>
+        <div class="topic-meta">SELECT FOR UPDATE, deadlocks, lock contention</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('row_lock')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('row_lock','todo')">📋 To Do</button><button class="" onclick="setStatus('row_lock','studying')">📖 Studying</button><button class="" onclick="setStatus('row_lock','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('optimistic')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Optimistic Locking</div>
+        <div class="topic-meta">version column pattern, no DB lock needed</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('optimistic')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('optimistic','todo')">📋 To Do</button><button class="" onclick="setStatus('optimistic','studying')">📖 Studying</button><button class="" onclick="setStatus('optimistic','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('deadlock')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Deadlock</div>
+        <div class="topic-meta">How it happens, how PostgreSQL resolves it</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('deadlock')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('deadlock','todo')">📋 To Do</button><button class="" onclick="setStatus('deadlock','studying')">📖 Studying</button><button class="" onclick="setStatus('deadlock','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Schema Design</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('bi_Schema_Design',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('bi_Schema_Design',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('normalization')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Normalization (1NF, 2NF, 3NF)</div>
+        <div class="topic-meta">Rules + when to break them</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('normalization')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('normalization','todo')">📋 To Do</button><button class="" onclick="setStatus('normalization','studying')">📖 Studying</button><button class="" onclick="setStatus('normalization','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('denorm')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Denormalization</div>
+        <div class="topic-meta">When reads justify duplicating data</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('denorm')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('denorm','todo')">📋 To Do</button><button class="" onclick="setStatus('denorm','studying')">📖 Studying</button><button class="" onclick="setStatus('denorm','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('soft_delete')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Soft Delete</div>
+        <div class="topic-meta">deleted_at pattern, impact on indexes/queries</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('soft_delete')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('soft_delete','todo')">📋 To Do</button><button class="" onclick="setStatus('soft_delete','studying')">📖 Studying</button><button class="" onclick="setStatus('soft_delete','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('audit')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Audit Trail</div>
+        <div class="topic-meta">updated_at, created_at, history tables</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('audit')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('audit','todo')">📋 To Do</button><button class="" onclick="setStatus('audit','studying')">📖 Studying</button><button class="" onclick="setStatus('audit','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('surrogate')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Surrogate vs Natural Key</div>
+        <div class="topic-meta">BIGSERIAL/UUID vs business key as PK</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('surrogate')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('surrogate','todo')">📋 To Do</button><button class="" onclick="setStatus('surrogate','studying')">📖 Studying</button><button class="" onclick="setStatus('surrogate','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('uuid_bigint')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">UUID vs BIGINT</div>
+        <div class="topic-meta">Tradeoffs for distributed systems</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('uuid_bigint')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('uuid_bigint','todo')">📋 To Do</button><button class="" onclick="setStatus('uuid_bigint','studying')">📖 Studying</button><button class="" onclick="setStatus('uuid_bigint','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Scaling</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('bi_Scaling',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('bi_Scaling',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('partitioning')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Table Partitioning</div>
+        <div class="topic-meta">Range, list, hash</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('partitioning')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('partitioning','todo')">📋 To Do</button><button class="" onclick="setStatus('partitioning','studying')">📖 Studying</button><button class="" onclick="setStatus('partitioning','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('replicas')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Read Replicas</div>
+        <div class="topic-meta">Streaming replication, read scaling</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('replicas')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('replicas','todo')">📋 To Do</button><button class="" onclick="setStatus('replicas','studying')">📖 Studying</button><button class="" onclick="setStatus('replicas','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('sharding')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Sharding (Citus)</div>
+        <div class="topic-meta">Horizontal split</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('sharding')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('sharding','todo')">📋 To Do</button><button class="" onclick="setStatus('sharding','studying')">📖 Studying</button><button class="" onclick="setStatus('sharding','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('pg_partman')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">pg_partman</div>
+        <div class="topic-meta">Auto partition management extension</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('pg_partman')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('pg_partman','todo')">📋 To Do</button><button class="" onclick="setStatus('pg_partman','studying')">📖 Studying</button><button class="" onclick="setStatus('pg_partman','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Data Architecture</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('bi_Data_Architecture',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('bi_Data_Architecture',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('oltp_olap')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">OLTP vs OLAP</div>
+        <div class="topic-meta">Design differences, index strategies differ</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('oltp_olap')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('oltp_olap','todo')">📋 To Do</button><button class="" onclick="setStatus('oltp_olap','studying')">📖 Studying</button><button class="" onclick="setStatus('oltp_olap','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('lake_warehouse')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Data Lake vs Data Warehouse</div>
+        <div class="topic-meta">S3+Athena vs Redshift/BigQuery</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('lake_warehouse')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('lake_warehouse','todo')">📋 To Do</button><button class="" onclick="setStatus('lake_warehouse','studying')">📖 Studying</button><button class="" onclick="setStatus('lake_warehouse','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('etl_elt')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">ETL vs ELT</div>
+        <div class="topic-meta">Transform before or after load</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('etl_elt')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('etl_elt','todo')">📋 To Do</button><button class="" onclick="setStatus('etl_elt','studying')">📖 Studying</button><button class="" onclick="setStatus('etl_elt','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('parquet')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Columnar Storage (Parquet)</div>
+        <div class="topic-meta">Column pruning, row group stats</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('parquet')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('parquet','todo')">📋 To Do</button><button class="" onclick="setStatus('parquet','studying')">📖 Studying</button><button class="" onclick="setStatus('parquet','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('lake_partition')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Partitioning in Data Lakes</div>
+        <div class="topic-meta">Hive-style, partition pruning</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('lake_partition')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('lake_partition','todo')">📋 To Do</button><button class="" onclick="setStatus('lake_partition','studying')">📖 Studying</button><button class="" onclick="setStatus('lake_partition','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('incremental')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Delta / Incremental Load</div>
+        <div class="topic-meta">Watermark, cursor-based sync</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('incremental')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('incremental','todo')">📋 To Do</button><button class="" onclick="setStatus('incremental','studying')">📖 Studying</button><button class="" onclick="setStatus('incremental','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('cdc')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">CDC (Change Data Capture)</div>
+        <div class="topic-meta">Debezium, Kafka, stream DB changes</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('cdc')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('cdc','todo')">📋 To Do</button><button class="" onclick="setStatus('cdc','studying')">📖 Studying</button><button class="" onclick="setStatus('cdc','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('outbox')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Outbox Pattern</div>
+        <div class="topic-meta">Reliable event publishing from DB transactions</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('outbox')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('outbox','todo')">📋 To Do</button><button class="" onclick="setStatus('outbox','studying')">📖 Studying</button><button class="" onclick="setStatus('outbox','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('consistency_patterns')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Data Consistency Patterns</div>
+        <div class="topic-meta">Eventual consistency, saga pattern</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('consistency_patterns')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('consistency_patterns','todo')">📋 To Do</button><button class="" onclick="setStatus('consistency_patterns','studying')">📖 Studying</button><button class="" onclick="setStatus('consistency_patterns','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Distributed Systems</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('bi_Distributed_Systems',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('bi_Distributed_Systems',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('base_acid')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">BASE vs ACID</div>
+        <div class="topic-meta">Basically Available, Soft state, Eventual consistency</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('base_acid')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('base_acid','todo')">📋 To Do</button><button class="" onclick="setStatus('base_acid','studying')">📖 Studying</button><button class="" onclick="setStatus('base_acid','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('idempotency')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Idempotency</div>
+        <div class="topic-meta">Same request twice = same result, critical for retries</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('idempotency')">▼ + tasks</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('idempotency','todo')">📋 To Do</button><button class="" onclick="setStatus('idempotency','studying')">📖 Studying</button><button class="" onclick="setStatus('idempotency','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('eventual')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Eventual Consistency</div>
+        <div class="topic-meta">Data will be consistent, just not immediately</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('eventual')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('eventual','todo')">📋 To Do</button><button class="" onclick="setStatus('eventual','studying')">📖 Studying</button><button class="" onclick="setStatus('eventual','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('2pc')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Two-phase Commit (2PC)</div>
+        <div class="topic-meta">Distributed transaction across services</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('2pc')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('2pc','todo')">📋 To Do</button><button class="" onclick="setStatus('2pc','studying')">📖 Studying</button><button class="" onclick="setStatus('2pc','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Maintenance &amp; Internals</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('bi_Maintenance_Internals',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('bi_Maintenance_Internals',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▼</button>
+          
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('mvcc')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">MVCC</div>
+        <div class="topic-meta">Rows never overwritten, dead tuples, why VACUUM exists</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('mvcc')">▲ 0/7</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="" onclick="setStatus('mvcc','todo')">📋 To Do</button><button class="active-studying" onclick="setStatus('mvcc','studying')">📖 Studying</button><button class="" onclick="setStatus('mvcc','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('mvcc','1780326666831')">
+        <span class="subtask-text ">Instead of overwriting data, Postgres treats every UPDATE as a combination of a DELETE and an INSERT.Because of this, a single logical row in your table might actually have 5 or 10 different physical versions sitting on the disk at the same time.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('mvcc','1780326666831')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('mvcc','1780326695335')">
+        <span class="subtask-text ">Because rows are never overwritten, your database accumulates a lot of history. Once a transaction updates or deletes a row, that old version of the row is still sitting on the disk.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('mvcc','1780326695335')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('mvcc','1780326750227')">
+        <span class="subtask-text ">Since Postgres doesn't delete data on the fly, it needs a garbage collector. That is exactly what VACUUM is.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('mvcc','1780326750227')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('mvcc','1780326823868')">
+        <span class="subtask-text ">INSERT: New live tuple is created.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('mvcc','1780326823868')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('mvcc','1780326837250')">
+        <span class="subtask-text ">UPDATE / DELETE	: Old tuple is marked dead; new live tuple is created (for updates).</span>
+        <button class="subtask-delete" onclick="deleteSubtask('mvcc','1780326837250')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('mvcc','1780326863581')">
+        <span class="subtask-text ">Time Passes: Old transactions finish; tuples become "dead tuples" (bloat).</span>
+        <button class="subtask-delete" onclick="deleteSubtask('mvcc','1780326863581')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('mvcc','1780326884218')">
+        <span class="subtask-text ">VACUUM: Runs -&gt; Dead tuples are cleared, opening up space for new inserts.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('mvcc','1780326884218')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-mvcc" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'mvcc')">
+      <button class="add-subtask-btn" onclick="addSubtask('mvcc')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('vacuum')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">VACUUM / AUTOVACUUM</div>
+        <div class="topic-meta">Reclaim dead tuples, when to run manually</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('vacuum')">▲ 0/2</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="" onclick="setStatus('vacuum','todo')">📋 To Do</button><button class="active-studying" onclick="setStatus('vacuum','studying')">📖 Studying</button><button class="" onclick="setStatus('vacuum','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('vacuum','1780327073794')">
+        <span class="subtask-text ">Autovacuum wakes up every minute, looks for tables that have had a high volume of changes, and cleans them. It decides to vacuum a table based on a simple math formula:</span>
+        <button class="subtask-delete" onclick="deleteSubtask('vacuum','1780327073794')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('vacuum','1780327075930')">
+        <span class="subtask-text ">If your application is deleting or updating data faster than Autovacuum's throttled speed can clean it, Autovacuum falls behind. This is when your database begins to bloat, queries slow down, and you have to intervene manually.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('vacuum','1780327075930')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-vacuum" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'vacuum')">
+      <button class="add-subtask-btn" onclick="addSubtask('vacuum')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('bloat')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">Table Bloat</div>
+        <div class="topic-meta">What it is, how to detect, VACUUM FULL risk</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('bloat')">▲ 0/3</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="" onclick="setStatus('bloat','todo')">📋 To Do</button><button class="active-studying" onclick="setStatus('bloat','studying')">📖 Studying</button><button class="" onclick="setStatus('bloat','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('bloat','1780327216095')">
+        <span class="subtask-text ">In PostgreSQL, bloat is the wasted space on your disk occupied by dead tuples that have not yet been cleaned up, or space that was cleaned up but is currently sitting empty inside the table file.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('bloat','1780327216095')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('bloat','1780327247880')">
+        <span class="subtask-text ">When a table is heavily bloated (e.g., 70% of the file is empty space) and you desperately need that hard drive space back, a standard VACUUM won't help. You need VACUUM FULL.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('bloat','1780327247880')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('bloat','1780327252911')">
+        <span class="subtask-text ">VACUUM FULL actively packs up the live rows, writes them into a brand-new, perfectly optimized file on disk, and deletes the old bloated file.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('bloat','1780327252911')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-bloat" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'bloat')">
+      <button class="add-subtask-btn" onclick="addSubtask('bloat')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('wal')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">WAL</div>
+        <div class="topic-meta">Write-ahead log, crash recovery, replication</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('wal')">▲ 0/1</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="" onclick="setStatus('wal','todo')">📋 To Do</button><button class="active-studying" onclick="setStatus('wal','studying')">📖 Studying</button><button class="" onclick="setStatus('wal','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('wal','1780327485915')">
+        <span class="subtask-text ">The Write-Ahead Log (WAL) is PostgreSQL’s transaction log. It is a continuous, append-only file on disk where Postgres records every single change (inserts, updates, deletes) before those changes are actually applied to the actual table and index files.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('wal','1780327485915')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-wal" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'wal')">
+      <button class="add-subtask-btn" onclick="addSubtask('wal')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('checkpoint')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Dirty Pages / Checkpoint</div>
+        <div class="topic-meta">Modified pages flushed to disk periodically</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('checkpoint')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('checkpoint','todo')">📋 To Do</button><button class="" onclick="setStatus('checkpoint','studying')">📖 Studying</button><button class="" onclick="setStatus('checkpoint','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteItem('pgbouncer')" title="Remove">✕</button>
+    <div class="topic-row  ">
+      <div>
+        <div class="topic-name">Connection Pooling (PgBouncer)</div>
+        <div class="topic-meta">Why needed, transaction vs session mode</div>
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('pgbouncer')">▼ + tasks</button>
+      <span class="depth-badge depth-concept">⚠️ Concept</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        
+        <div class="status-btn">
+          <button class="active-todo" onclick="setStatus('pgbouncer','todo')">📋 To Do</button><button class="" onclick="setStatus('pgbouncer','studying')">📖 Studying</button><button class="" onclick="setStatus('pgbouncer','done')">✅ Done</button>
+        </div>
+      </div>
+    </div></div></div><div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>INTERNAL COMMANDS BEHAVIOR</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('cs_1780327619045',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;">▲</button>
+          <button onclick="moveSection('cs_1780327619045',1)" title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;opacity:0.25;pointer-events:none;">▼</button>
+          <button onclick="deleteSection('cs_1780327619045')" style="background:none;border:none;color:#374151;cursor:pointer;font-size:0.75rem;padding:2px 6px;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#374151'">✕</button>
+        </div>
+      </div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780327619045','ci_1780327629031')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">SELECT</div>
+        
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780327629031')">▲ 0/6</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780327619045','ci_1780327629031',-1)" disabled="">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780327619045','ci_1780327629031',1)">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="" onclick="setStatus('ci_1780327629031','todo')">📋 To Do</button><button class="active-studying" onclick="setStatus('ci_1780327629031','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780327629031','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327629031','1780327768542')">
+        <span class="subtask-text ">When you execute an INSERT statement, Postgres doesn't just append a line to a text file. It treats data in structured 8KB blocks called Pages.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327629031','1780327768542')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327629031','1780327776699')">
+        <span class="subtask-text ">Page Lookup: Postgres checks the Free Space Map (FSM) of the table to find an existing 8KB data page on disk that has enough room for the new row. If none are found, it allocates a brand-new page.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327629031','1780327776699')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327629031','1780327782830')">
+        <span class="subtask-text ">Loading into RAM: The page is loaded from disk into Shared Buffers (Postgres's RAM caching layer) if it isn’t already there.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327629031','1780327782830')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327629031','1780327788125')">
+        <span class="subtask-text ">Writing the WAL: Before touching the data page, Postgres writes an INSERT record to the WAL buffer on disk. This guarantees durability.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327629031','1780327788125')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327629031','1780327807773')">
+        <span class="subtask-text ">Creating the Tuple: The row is written into the page in RAM. Postgres attaches hidden metadata to the row header:</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327629031','1780327807773')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327629031','1780327815841')">
+        <span class="subtask-text ">Dirty Page: The page in RAM is marked as "dirty." A background process (the checkpointer) will eventually flush it to the actual table file on disk later.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327629031','1780327815841')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-ci_1780327629031" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'ci_1780327629031')">
+      <button class="add-subtask-btn" onclick="addSubtask('ci_1780327629031')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780327619045','ci_1780327635681')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">INSERT</div>
+        
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780327635681')">▲ 0/2</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780327619045','ci_1780327635681',-1)">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780327619045','ci_1780327635681',1)">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="" onclick="setStatus('ci_1780327635681','todo')">📋 To Do</button><button class="active-studying" onclick="setStatus('ci_1780327635681','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780327635681','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327635681','1780328000368')">
+        <span class="subtask-text ">A SELECT query never simply reads whatever is on the disk; it filters rows based on a Snapshot of the database taken at the exact moment the query (or transaction) started.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327635681','1780328000368')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327635681','1780328013173')">
+        <span class="subtask-text ">[Read Page from Disk/RAM] ──&gt; [Check Header Metadata] ──&gt; [Apply Visibility Rules] ──&gt; [Return Data]</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327635681','1780328013173')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-ci_1780327635681" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'ci_1780327635681')">
+      <button class="add-subtask-btn" onclick="addSubtask('ci_1780327635681')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780327619045','ci_1780327642983')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">UPDATE</div>
+        
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780327642983')">▲ 0/5</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780327619045','ci_1780327642983',-1)">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780327619045','ci_1780327642983',1)">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="" onclick="setStatus('ci_1780327642983','todo')">📋 To Do</button><button class="active-studying" onclick="setStatus('ci_1780327642983','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780327642983','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327642983','1780328134422')">
+        <span class="subtask-text ">Because Postgres relies on immutable row versions for concurrency, an UPDATE is structurally an atomic combination of a DELETE and an INSERT.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327642983','1780328134422')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327642983','1780328148412')">
+        <span class="subtask-text ">Find and Lock: Postgres locates the existing row page and places a row-level lock on it.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327642983','1780328148412')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327642983','1780328153351')">
+        <span class="subtask-text ">The "Delete" Phase: It writes to the WAL, then updates the old row's xmax header to the current Transaction ID. The old version is now marked for death.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327642983','1780328153351')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327642983','1780328157527')">
+        <span class="subtask-text ">The "Insert" Phase: * It searches the Free Space Map for a page to hold the new version of the row.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327642983','1780328157527')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327642983','1780328162948')">
+        <span class="subtask-text ">The Pointer Chain: Crucially, Postgres links the two rows together. The old row's header points to the physical location (ctid) of the new row. This allows ongoing transactions to traverse the history chain if they need to find the newer or older version of the data.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327642983','1780328162948')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-ci_1780327642983" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'ci_1780327642983')">
+      <button class="add-subtask-btn" onclick="addSubtask('ci_1780327642983')">+ Add</button>
+    </div></div></div><div class="topic-block">
+    <button class="item-delete-btn" onclick="deleteCustomItem('cs_1780327619045','ci_1780327648067')" title="Remove">✕</button>
+    <div class="topic-row  has-tasks">
+      <div>
+        <div class="topic-name">DELETE</div>
+        
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('ci_1780327648067')">▲ 0/7</button>
+      <span class="depth-badge depth-deep">✅ Deep</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('cs_1780327619045','ci_1780327648067',-1)">▲</button>
+          <button class="move-btn" onclick="moveItem('cs_1780327619045','ci_1780327648067',1)" disabled="">▼</button>
+        </div>
+        <div class="status-btn">
+          <button class="" onclick="setStatus('ci_1780327648067','todo')">📋 To Do</button><button class="active-studying" onclick="setStatus('ci_1780327648067','studying')">📖 Studying</button><button class="" onclick="setStatus('ci_1780327648067','done')">✅ Done</button>
+        </div>
+      </div>
+    </div><div class="topic-tasks"><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327648067','1780328072114')">
+        <span class="subtask-text ">Postgres never immediately erases data during a DELETE. True deletion is a deferred job for the garbage collector (VACUUM).</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327648067','1780328072114')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327648067','1780328075900')">
+        <span class="subtask-text ">Locate the Target: Postgres uses an index or sequential scan to find the target tuple page and loads it into Shared Buffers.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327648067','1780328075900')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327648067','1780328080991')">
+        <span class="subtask-text ">Locking: It locks the row to ensure no other transaction can modify it simultaneously.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327648067','1780328080991')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327648067','1780328084529')">
+        <span class="subtask-text ">WAL Logging: A DELETE operation record is written to the WAL.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327648067','1780328084529')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327648067','1780328088526')">
+        <span class="subtask-text ">Setting xmax: Instead of wiping the bytes, Postgres updates the hidden metadata header of the existing row:</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327648067','1780328088526')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327648067','1780328092535')">
+        <span class="subtask-text ">Setting xmax: Instead of wiping the bytes, Postgres updates the hidden metadata header of the existing row:</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327648067','1780328092535')">✕</button>
+      </div><div class="subtask-row">
+        <input type="checkbox" onchange="toggleSubtask('ci_1780327648067','1780328098293')">
+        <span class="subtask-text ">The Outcome: The row is now a "zombie." To the current deleting transaction, it is invisible. To older, concurrent transactions still running, it remains visible because their snapshots pre-date the new xmax. Once all those old transactions finish, this row becomes a dead tuple.</span>
+        <button class="subtask-delete" onclick="deleteSubtask('ci_1780327648067','1780328098293')">✕</button>
+      </div><div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-ci_1780327648067" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'ci_1780327648067')">
+      <button class="add-subtask-btn" onclick="addSubtask('ci_1780327648067')">+ Add</button>
+    </div></div></div><div class="add-item-form">
+        <div class="add-item-form-row">
+          <input id="new-item-name-cs_1780327619045" class="form-input" placeholder="Item name…" onkeydown="handleNewItemKey(event,'cs_1780327619045')">
+          <select id="new-item-depth-cs_1780327619045" class="form-select">
+            <option value="deep">✅ Deep</option>
+            <option value="concept">⚠️ Concept</option>
+          </select>
+        </div>
+        <div class="add-item-form-row">
+          <input id="new-item-note-cs_1780327619045" class="form-input" placeholder="Note / what to know (optional)…" onkeydown="handleNewItemKey(event,'cs_1780327619045')">
+          <button class="btn-primary" onclick="addCustomItem('cs_1780327619045')">+ Add item</button>
+        </div>
+      </div></div><div class="add-section-box">
+    <div class="add-section-box-title">Add New Section</div>
+    <div class="add-section-row">
+      <input id="new-section-input" class="form-input" placeholder="Section name…" onkeydown="if(event.key==='Enter') addSection()">
+      <button class="btn-primary" onclick="addSection()">+ Add section</button>
+    </div>
+  </div></div>
+
+<script>
+const data = [
+  { section: "Query & Performance", topics: [
+    { id: "explain", name: "EXPLAIN / EXPLAIN ANALYZE", depth: "deep", note: "Read cost, actual rows, scan types, join types" },
+    { id: "scan_types", name: "Seq Scan vs Index Scan vs Index Only Scan", depth: "deep", note: "When each happens, how to force index" },
+    { id: "n1", name: "N+1 Problem", depth: "deep", note: "How to detect, fix with JOIN or batch fetch" },
+    { id: "slow_query", name: "Slow Query Identification", depth: "deep", note: "pg_stat_statements, pg_stat_activity" },
+    { id: "planner_stats", name: "Query Planner Statistics", depth: "deep", note: "ANALYZE, why estimates go wrong" },
+    { id: "cursor_pagination", name: "Cursor-based Pagination", depth: "deep", note: "Why OFFSET fails at scale" },
+  ]},
+  { section: "Indexing", topics: [
+    { id: "btree", name: "B-tree Index", depth: "deep", note: "Default, range, equality, ORDER BY" },
+    { id: "composite", name: "Composite Index", depth: "deep", note: "Column order matters, leading column rule" },
+    { id: "partial", name: "Partial Index", depth: "deep", note: "Index a subset of rows" },
+    { id: "covering", name: "Covering Index (INCLUDE)", depth: "deep", note: "Avoid heap fetch" },
+    { id: "gin", name: "GIN Index", depth: "concept", note: "Full-text search, JSONB, arrays" },
+    { id: "brin", name: "BRIN Index", depth: "concept", note: "Sequential data like timestamps, very large tables" },
+    { id: "no_index", name: "When NOT to Index", depth: "deep", note: "Write-heavy tables, low cardinality, unused indexes" },
+  ]},
+  { section: "SQL Features", topics: [
+    { id: "window", name: "Window Functions", depth: "deep", note: "RANK, ROW_NUMBER, LAG, LEAD, SUM OVER, PARTITION BY" },
+    { id: "cte", name: "CTEs (WITH)", depth: "deep", note: "Readability, reuse, when optimizer materializes" },
+    { id: "recursive_cte", name: "Recursive CTEs", depth: "concept", note: "Hierarchy/tree traversal" },
+    { id: "jsonb", name: "JSONB", depth: "deep", note: "Store, query, index semi-structured data" },
+    { id: "fts", name: "Full-text Search", depth: "concept", note: "tsvector, tsquery, GIN index" },
+    { id: "lateral", name: "Lateral Joins", depth: "concept", note: "Correlated subquery in FROM clause" },
+    { id: "upsert", name: "Upsert (ON CONFLICT)", depth: "deep", note: "INSERT ... ON CONFLICT DO UPDATE" },
+  ]},
+  { section: "Transactions & Concurrency", topics: [
+    { id: "acid", name: "ACID Properties", depth: "deep", note: "Atomicity, Consistency, Isolation, Durability" },
+    { id: "isolation", name: "Isolation Levels", depth: "deep", note: "Read Committed, Repeatable Read, Serializable" },
+    { id: "read_anomalies", name: "Dirty / Phantom / Non-repeatable Read", depth: "deep", note: "What each is, which level prevents it" },
+    { id: "row_lock", name: "Row-level Locking", depth: "deep", note: "SELECT FOR UPDATE, deadlocks, lock contention" },
+    { id: "optimistic", name: "Optimistic Locking", depth: "deep", note: "version column pattern, no DB lock needed" },
+    { id: "deadlock", name: "Deadlock", depth: "deep", note: "How it happens, how PostgreSQL resolves it" },
+  ]},
+  { section: "Schema Design", topics: [
+    { id: "normalization", name: "Normalization (1NF, 2NF, 3NF)", depth: "deep", note: "Rules + when to break them" },
+    { id: "denorm", name: "Denormalization", depth: "deep", note: "When reads justify duplicating data" },
+    { id: "soft_delete", name: "Soft Delete", depth: "deep", note: "deleted_at pattern, impact on indexes/queries" },
+    { id: "audit", name: "Audit Trail", depth: "deep", note: "updated_at, created_at, history tables" },
+    { id: "surrogate", name: "Surrogate vs Natural Key", depth: "deep", note: "BIGSERIAL/UUID vs business key as PK" },
+    { id: "uuid_bigint", name: "UUID vs BIGINT", depth: "concept", note: "Tradeoffs for distributed systems" },
+  ]},
+  { section: "Maintenance & Internals", topics: [
+    { id: "mvcc", name: "MVCC", depth: "concept", note: "Rows never overwritten, dead tuples, why VACUUM exists" },
+    { id: "vacuum", name: "VACUUM / AUTOVACUUM", depth: "concept", note: "Reclaim dead tuples, when to run manually" },
+    { id: "bloat", name: "Table Bloat", depth: "concept", note: "What it is, how to detect, VACUUM FULL risk" },
+    { id: "wal", name: "WAL", depth: "concept", note: "Write-ahead log, crash recovery, replication" },
+    { id: "checkpoint", name: "Dirty Pages / Checkpoint", depth: "concept", note: "Modified pages flushed to disk periodically" },
+    { id: "pgbouncer", name: "Connection Pooling (PgBouncer)", depth: "concept", note: "Why needed, transaction vs session mode" },
+  ]},
+  { section: "Scaling", topics: [
+    { id: "partitioning", name: "Table Partitioning", depth: "deep", note: "Range, list, hash" },
+    { id: "replicas", name: "Read Replicas", depth: "concept", note: "Streaming replication, read scaling" },
+    { id: "sharding", name: "Sharding (Citus)", depth: "concept", note: "Horizontal split" },
+    { id: "pg_partman", name: "pg_partman", depth: "concept", note: "Auto partition management extension" },
+  ]},
+  { section: "Data Architecture", topics: [
+    { id: "oltp_olap", name: "OLTP vs OLAP", depth: "deep", note: "Design differences, index strategies differ" },
+    { id: "lake_warehouse", name: "Data Lake vs Data Warehouse", depth: "deep", note: "S3+Athena vs Redshift/BigQuery" },
+    { id: "etl_elt", name: "ETL vs ELT", depth: "deep", note: "Transform before or after load" },
+    { id: "parquet", name: "Columnar Storage (Parquet)", depth: "deep", note: "Column pruning, row group stats" },
+    { id: "lake_partition", name: "Partitioning in Data Lakes", depth: "deep", note: "Hive-style, partition pruning" },
+    { id: "incremental", name: "Delta / Incremental Load", depth: "deep", note: "Watermark, cursor-based sync" },
+    { id: "cdc", name: "CDC (Change Data Capture)", depth: "concept", note: "Debezium, Kafka, stream DB changes" },
+    { id: "outbox", name: "Outbox Pattern", depth: "concept", note: "Reliable event publishing from DB transactions" },
+    { id: "consistency_patterns", name: "Data Consistency Patterns", depth: "concept", note: "Eventual consistency, saga pattern" },
+  ]},
+  { section: "Distributed Systems", topics: [
+    { id: "cap", name: "CAP Theorem", depth: "concept", note: "Can't have C+A+P simultaneously" },
+    { id: "base_acid", name: "BASE vs ACID", depth: "concept", note: "Basically Available, Soft state, Eventual consistency" },
+    { id: "idempotency", name: "Idempotency", depth: "deep", note: "Same request twice = same result, critical for retries" },
+    { id: "eventual", name: "Eventual Consistency", depth: "concept", note: "Data will be consistent, just not immediately" },
+    { id: "2pc", name: "Two-phase Commit (2PC)", depth: "concept", note: "Distributed transaction across services" },
+  ]},
+];
+
+const STATUS = ['todo', 'studying', 'done'];
+const STATUS_LABELS = { todo: '📋 To Do', studying: '📖 Studying', done: '✅ Done' };
+
+// ── Embedded persistent state (rewritten into this file on every save) ──
+const EMBEDDED = /*PERSIST_START*/{"state":{"mvcc":"studying","vacuum":"studying","bloat":"studying","wal":"studying","ci_1780327642983":"studying","ci_1780327635681":"studying","ci_1780327648067":"studying","ci_1780327629031":"studying"},"topicTasks":{"ci_1780315019817":[{"id":"1780315034472","text":"Install docker","checked":false},{"id":"1780315042486","text":"Install DB Beaver","checked":false},{"id":"1780315128543","text":"Run docker compose to prepare db and schema: \"cd D:\\LevelUpJourney\\CMP\" \"docker-compose up -d\"","checked":false},{"id":"1780315187334","text":"Open DB Beaver and connect to DB using these information. Host:     localhost Port:     5432 Database: invoices User:     postgres Password: test123","checked":false}],"ci_1780315226282":[{"id":"1780315283918","text":"For Spring Boot: https://start.spring.io/, Gradle - Kotlin. Spring Boot v 4.0.6, Java 21","checked":false},{"id":"1780315376984","text":"For ExpressJs: Install Nodejs -> npm init  or npm init -y -> npm install express","checked":false}],"ci_1780325888297":[{"id":"1780325943715","text":"Create cron job to fetch all data on initial load, for later load fetch delta changes only using invoice_number","checked":false},{"id":"1780325968875","text":"Optimize sample Spring Boot project which have some issues with DB performance","checked":false},{"id":"1780326095153","text":"Compare optimized version using these metrics: buffers_backend, hit_ratio, checkpoints_req","checked":false},{"id":"1780326259606","text":"As a operator, It takes so long to finish sync. I have an idea is to have multiple servers perform cron job at a same time. What is the best approach to do that to prevent conflict when we have multiple instances run cron job","checked":false}],"mvcc":[{"id":"1780326666831","text":"Instead of overwriting data, Postgres treats every UPDATE as a combination of a DELETE and an INSERT.Because of this, a single logical row in your table might actually have 5 or 10 different physical versions sitting on the disk at the same time.","checked":false},{"id":"1780326695335","text":"Because rows are never overwritten, your database accumulates a lot of history. Once a transaction updates or deletes a row, that old version of the row is still sitting on the disk.","checked":false},{"id":"1780326750227","text":"Since Postgres doesn't delete data on the fly, it needs a garbage collector. That is exactly what VACUUM is.","checked":false},{"id":"1780326823868","text":"INSERT: New live tuple is created.","checked":false},{"id":"1780326837250","text":"UPDATE / DELETE\t: Old tuple is marked dead; new live tuple is created (for updates).","checked":false},{"id":"1780326863581","text":"Time Passes: Old transactions finish; tuples become \"dead tuples\" (bloat).","checked":false},{"id":"1780326884218","text":"VACUUM: Runs -> Dead tuples are cleared, opening up space for new inserts.","checked":false}],"vacuum":[{"id":"1780327073794","text":"Autovacuum wakes up every minute, looks for tables that have had a high volume of changes, and cleans them. It decides to vacuum a table based on a simple math formula:","checked":false},{"id":"1780327075930","text":"If your application is deleting or updating data faster than Autovacuum's throttled speed can clean it, Autovacuum falls behind. This is when your database begins to bloat, queries slow down, and you have to intervene manually.","checked":false}],"bloat":[{"id":"1780327216095","text":"In PostgreSQL, bloat is the wasted space on your disk occupied by dead tuples that have not yet been cleaned up, or space that was cleaned up but is currently sitting empty inside the table file.","checked":false},{"id":"1780327247880","text":"When a table is heavily bloated (e.g., 70% of the file is empty space) and you desperately need that hard drive space back, a standard VACUUM won't help. You need VACUUM FULL.","checked":false},{"id":"1780327252911","text":"VACUUM FULL actively packs up the live rows, writes them into a brand-new, perfectly optimized file on disk, and deletes the old bloated file.","checked":false}],"wal":[{"id":"1780327485915","text":"The Write-Ahead Log (WAL) is PostgreSQL’s transaction log. It is a continuous, append-only file on disk where Postgres records every single change (inserts, updates, deletes) before those changes are actually applied to the actual table and index files.","checked":false}],"ci_1780327629031":[{"id":"1780327768542","text":"When you execute an INSERT statement, Postgres doesn't just append a line to a text file. It treats data in structured 8KB blocks called Pages.","checked":false},{"id":"1780327776699","text":"Page Lookup: Postgres checks the Free Space Map (FSM) of the table to find an existing 8KB data page on disk that has enough room for the new row. If none are found, it allocates a brand-new page.","checked":false},{"id":"1780327782830","text":"Loading into RAM: The page is loaded from disk into Shared Buffers (Postgres's RAM caching layer) if it isn’t already there.","checked":false},{"id":"1780327788125","text":"Writing the WAL: Before touching the data page, Postgres writes an INSERT record to the WAL buffer on disk. This guarantees durability.","checked":false},{"id":"1780327807773","text":"Creating the Tuple: The row is written into the page in RAM. Postgres attaches hidden metadata to the row header:","checked":false},{"id":"1780327815841","text":"Dirty Page: The page in RAM is marked as \"dirty.\" A background process (the checkpointer) will eventually flush it to the actual table file on disk later.","checked":false}],"ci_1780327635681":[{"id":"1780328000368","text":"A SELECT query never simply reads whatever is on the disk; it filters rows based on a Snapshot of the database taken at the exact moment the query (or transaction) started.","checked":false},{"id":"1780328013173","text":"[Read Page from Disk/RAM] ──> [Check Header Metadata] ──> [Apply Visibility Rules] ──> [Return Data]","checked":false}],"ci_1780327642983":[{"id":"1780328134422","text":"Because Postgres relies on immutable row versions for concurrency, an UPDATE is structurally an atomic combination of a DELETE and an INSERT.","checked":false},{"id":"1780328148412","text":"Find and Lock: Postgres locates the existing row page and places a row-level lock on it.","checked":false},{"id":"1780328153351","text":"The \"Delete\" Phase: It writes to the WAL, then updates the old row's xmax header to the current Transaction ID. The old version is now marked for death.","checked":false},{"id":"1780328157527","text":"The \"Insert\" Phase: * It searches the Free Space Map for a page to hold the new version of the row.","checked":false},{"id":"1780328162948","text":"The Pointer Chain: Crucially, Postgres links the two rows together. The old row's header points to the physical location (ctid) of the new row. This allows ongoing transactions to traverse the history chain if they need to find the newer or older version of the data.","checked":false}],"ci_1780327648067":[{"id":"1780328072114","text":"Postgres never immediately erases data during a DELETE. True deletion is a deferred job for the garbage collector (VACUUM).","checked":false},{"id":"1780328075900","text":"Locate the Target: Postgres uses an index or sequential scan to find the target tuple page and loads it into Shared Buffers.","checked":false},{"id":"1780328080991","text":"Locking: It locks the row to ensure no other transaction can modify it simultaneously.","checked":false},{"id":"1780328084529","text":"WAL Logging: A DELETE operation record is written to the WAL.","checked":false},{"id":"1780328088526","text":"Setting xmax: Instead of wiping the bytes, Postgres updates the hidden metadata header of the existing row:","checked":false},{"id":"1780328092535","text":"Setting xmax: Instead of wiping the bytes, Postgres updates the hidden metadata header of the existing row:","checked":false},{"id":"1780328098293","text":"The Outcome: The row is now a \"zombie.\" To the current deleting transaction, it is invisible. To older, concurrent transactions still running, it remains visible because their snapshots pre-date the new xmax. Once all those old transactions finish, this row becomes a dead tuple.","checked":false}]},"expanded":{"ci_1780315019817":true,"ci_1780315226282":true,"ci_1780325888297":true,"mvcc":true,"vacuum":true,"bloat":true,"wal":true,"ci_1780327629031":true,"ci_1780327635681":true,"ci_1780327642983":true,"ci_1780327648067":true},"deletedItems":{"cap":true},"customSections":[{"id":"cs_1780315000033","name":"SET UP","items":[{"id":"ci_1780315019817","name":"Install tools","note":"Install tools","depth":"deep"},{"id":"ci_1780315226282","name":"Create a stateless server","note":"Spring Boot or Express.js","depth":"deep"},{"id":"ci_1780315438413","name":"Run the server","note":"Spring boot ( ../gradlew clean build bootRun), ExpressJs (node app.js)","depth":"deep"},{"id":"ci_1780315574799","name":"Install dependencies","note":"Spring Boot ( Lombok, Data JPA, Spring Web)","depth":"deep"},{"id":"ci_1780325888297","name":"Create midnight cron job to sync invoices","note":"","depth":"deep"},{"id":"ci_1780326118118","name":"Create cron job to sync orders","note":"","depth":"deep"}]},{"id":"cs_1780327619045","name":"INTERNAL COMMANDS BEHAVIOR","items":[{"id":"ci_1780327629031","name":"SELECT","note":"","depth":"deep"},{"id":"ci_1780327635681","name":"INSERT","note":"","depth":"deep"},{"id":"ci_1780327642983","name":"UPDATE","note":"","depth":"deep"},{"id":"ci_1780327648067","name":"DELETE","note":"","depth":"deep"}]}],"sectionOrder":["cs_1780315000033","bi_Query_Performance","bi_Indexing","bi_SQL_Features","bi_Transactions_Concurrency","bi_Schema_Design","bi_Scaling","bi_Data_Architecture","bi_Distributed_Systems","bi_Maintenance_Internals","cs_1780327619045"]}/*PERSIST_END*/;
+
+let state = EMBEDDED.state || {};
+let topicTasks = EMBEDDED.topicTasks || {};
+let expanded = EMBEDDED.expanded || {};
+let deletedItems = EMBEDDED.deletedItems || {}; // { topicId: true } — hides built-in items
+let customSections = EMBEDDED.customSections || []; // [{id, name, items:[{id,name,note,depth}]}]
+let sectionOrder = EMBEDDED.sectionOrder || []; // array of section ids in display order
+let currentFilter = 'all';
+
+// Give built-in sections stable IDs
+data.forEach(sec => { if (!sec.id) sec.id = 'bi_' + sec.section.replace(/\W+/g,'_'); });
+
+function getOrderedSections() {
+  // All known section IDs
+  const allBuiltin = data.map(s => s.id);
+  const allCustom  = customSections.map(s => s.id);
+  const all = [...allBuiltin, ...allCustom];
+  // Start from saved order, remove stale IDs, append new ones at end
+  const ordered = [
+    ...sectionOrder.filter(id => all.includes(id)),
+    ...all.filter(id => !sectionOrder.includes(id))
+  ];
+  return ordered;
+}
+
+function getSectionById(id) {
+  return data.find(s => s.id === id) || customSections.find(s => s.id === id) || null;
+}
+
+function moveSection(id, dir) { // dir: -1 up, +1 down
+  const order = getOrderedSections();
+  const idx = order.indexOf(id);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= order.length) return;
+  [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
+  sectionOrder = order;
+  saveAll(); render();
+}
+
+// ── Download-to-save: bakes data into the HTML and downloads it ──
+function saveToFile() {
+  const src = document.documentElement.outerHTML;
+  const payload = JSON.stringify({ state, topicTasks, expanded, deletedItems, customSections, sectionOrder: getOrderedSections() });
+  const updated = src.replace(
+    /\/\*PERSIST_START\*\/[\s\S]*?\/\*PERSIST_END\*\//,
+    `/*PERSIST_START*/${payload}/*PERSIST_END*/`
+  );
+  const blob = new Blob([updated], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'interview_tracker.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function saveAll() {
+  localStorage.setItem('interview_tracker', JSON.stringify(state));
+  localStorage.setItem('interview_topic_tasks', JSON.stringify(topicTasks));
+  localStorage.setItem('interview_expanded', JSON.stringify(expanded));
+  localStorage.setItem('interview_deleted_items', JSON.stringify(deletedItems));
+  localStorage.setItem('interview_custom_sections', JSON.stringify(customSections));
+  localStorage.setItem('interview_section_order', JSON.stringify(getOrderedSections()));
+}
+
+// Seed from localStorage if no embedded data
+if (!EMBEDDED.state) {
+  try { const s = localStorage.getItem('interview_tracker'); if (s) state = JSON.parse(s); } catch(e) {}
+  try { const s = localStorage.getItem('interview_topic_tasks'); if (s) topicTasks = JSON.parse(s); } catch(e) {}
+  try { const s = localStorage.getItem('interview_expanded'); if (s) expanded = JSON.parse(s); } catch(e) {}
+  try { const s = localStorage.getItem('interview_deleted_items'); if (s) deletedItems = JSON.parse(s); } catch(e) {}
+  try { const s = localStorage.getItem('interview_custom_sections'); if (s) customSections = JSON.parse(s); } catch(e) {}
+  try { const s = localStorage.getItem('interview_section_order'); if (s) sectionOrder = JSON.parse(s); } catch(e) {}
+}
+
+// ── Custom section & item management ──
+function addSection() {
+  const input = document.getElementById('new-section-input');
+  const name = input.value.trim();
+  if (!name) return;
+  customSections.push({ id: 'cs_' + Date.now(), name, items: [] });
+  saveAll(); input.value = ''; render();
+}
+
+function deleteSection(secId) {
+  if (!confirm('Delete this section and all its items?')) return;
+  customSections = customSections.filter(s => s.id !== secId);
+  saveAll(); render();
+}
+
+function addCustomItem(secId) {
+  const nameInput = document.getElementById('new-item-name-' + secId);
+  const noteInput = document.getElementById('new-item-note-' + secId);
+  const depthSel  = document.getElementById('new-item-depth-' + secId);
+  const name = nameInput.value.trim();
+  if (!name) return;
+  const sec = customSections.find(s => s.id === secId);
+  if (!sec) return;
+  const id = 'ci_' + Date.now();
+  sec.items.push({ id, name, note: noteInput.value.trim(), depth: depthSel.value });
+  saveAll(); nameInput.value = ''; noteInput.value = ''; render();
+  // re-focus name input
+  const el = document.getElementById('new-item-name-' + secId);
+  if (el) el.focus();
+}
+
+function deleteCustomItem(secId, itemId) {
+  const sec = customSections.find(s => s.id === secId);
+  if (sec) { sec.items = sec.items.filter(i => i.id !== itemId); saveAll(); render(); }
+}
+
+function deleteItem(topicId) {
+  deletedItems[topicId] = true;
+  saveAll(); render();
+}
+
+function handleNewItemKey(e, secId) {
+  if (e.key === 'Enter') addCustomItem(secId);
+}
+
+function moveItem(secId, itemId, dir) {
+  const sec = customSections.find(s => s.id === secId);
+  if (!sec) return;
+  const idx = sec.items.findIndex(i => i.id === itemId);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= sec.items.length) return;
+  [sec.items[idx], sec.items[newIdx]] = [sec.items[newIdx], sec.items[idx]];
+  saveAll(); render();
+}
+
+function getStatus(id) { return state[id] || 'todo'; }
+function setStatus(id, status) { state[id] = status; saveAll(); render(); }
+
+function toggleExpand(topicId) {
+  expanded[topicId] = !expanded[topicId];
+  saveAll(); render();
+}
+
+function addSubtask(topicId) {
+  const input = document.getElementById('new-subtask-' + topicId);
+  const text = (input && input.value.trim()) || '';
+  if (!text) return;
+  if (!topicTasks[topicId]) topicTasks[topicId] = [];
+  topicTasks[topicId].push({ id: Date.now().toString(), text, checked: false });
+  saveAll();
+  input.value = '';
+  render();
+  const newInput = document.getElementById('new-subtask-' + topicId);
+  if (newInput) newInput.focus();
+}
+
+function toggleSubtask(topicId, taskId) {
+  const t = (topicTasks[topicId] || []).find(t => t.id === taskId);
+  if (t) { t.checked = !t.checked; saveAll(); render(); }
+}
+
+function deleteSubtask(topicId, taskId) {
+  if (topicTasks[topicId]) {
+    topicTasks[topicId] = topicTasks[topicId].filter(t => t.id !== taskId);
+    saveAll(); render();
+  }
+}
+
+function handleSubtaskKey(e, topicId) {
+  if (e.key === 'Enter') addSubtask(topicId);
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function topicVisible(t) {
+  const s = getStatus(t.id);
+  if (currentFilter === 'all') return true;
+  if (currentFilter === 'deep') return t.depth === 'deep' && s !== 'done';
+  if (currentFilter === 'concept') return t.depth === 'concept';
+  return s === currentFilter;
+}
+
+function renderTopicBlock(t, secId, isCustom, itemIdx, itemCount) {
+  const s = getStatus(t.id);
+  const tasks = topicTasks[t.id] || [];
+  const isExpanded = expanded[t.id];
+  const taskCount = tasks.length;
+  const doneCount = tasks.filter(tk => tk.checked).length;
+  const taskLabel = taskCount ? `${doneCount}/${taskCount}` : '+ tasks';
+  const deleteBtn = isCustom
+    ? `<button class="item-delete-btn" onclick="deleteCustomItem('${secId}','${t.id}')" title="Remove">✕</button>`
+    : `<button class="item-delete-btn" onclick="deleteItem('${t.id}')" title="Remove">✕</button>`;
+
+  let h = `<div class="topic-block">
+    ${deleteBtn}
+    <div class="topic-row ${s === 'done' ? 'done' : ''} ${isExpanded ? 'has-tasks' : ''}">
+      <div>
+        <div class="topic-name">${t.name.replace(/</g,'&lt;')}</div>
+        ${t.note ? `<div class="topic-meta">${t.note.replace(/</g,'&lt;')}</div>` : ''}
+      </div>
+      <button class="expand-btn" onclick="toggleExpand('${t.id}')">${isExpanded ? '▲' : '▼'} ${taskLabel}</button>
+      <span class="depth-badge depth-${t.depth}">${t.depth === 'deep' ? '✅ Deep' : '⚠️ Concept'}</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        ${isCustom ? `<div style="display:flex;flex-direction:column;gap:2px;">
+          <button class="move-btn" onclick="moveItem('${secId}','${t.id}',-1)" ${itemIdx===0?'disabled':''}>▲</button>
+          <button class="move-btn" onclick="moveItem('${secId}','${t.id}',1)"  ${itemIdx===itemCount-1?'disabled':''}>▼</button>
+        </div>` : ''}
+        <div class="status-btn">
+          ${STATUS.map(st => `<button class="${s === st ? 'active-' + st : ''}" onclick="setStatus('${t.id}','${st}')">${STATUS_LABELS[st]}</button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  if (isExpanded) {
+    h += `<div class="topic-tasks">`;
+    tasks.forEach(tk => {
+      h += `<div class="subtask-row">
+        <input type="checkbox" ${tk.checked ? 'checked' : ''} onchange="toggleSubtask('${t.id}','${tk.id}')">
+        <span class="subtask-text ${tk.checked ? 'checked' : ''}">${tk.text.replace(/</g,'&lt;')}</span>
+        <button class="subtask-delete" onclick="deleteSubtask('${t.id}','${tk.id}')">✕</button>
+      </div>`;
+    });
+    h += `<div class="add-subtask-row">
+      <input class="add-subtask-input" id="new-subtask-${t.id}" type="text" placeholder="Add task…" onkeydown="handleSubtaskKey(event,'${t.id}')">
+      <button class="add-subtask-btn" onclick="addSubtask('${t.id}')">+ Add</button>
+    </div></div>`;
+  }
+  h += `</div>`;
+  return h;
+}
+
+function render() {
+  const main = document.getElementById('main');
+  let html = '';
+
+  // Stats across ALL sections (not filtered)
+  let allTotal = 0, allDone = 0, allStudying = 0, allTodo = 0, allDeepLeft = 0;
+  data.forEach(sec => sec.topics.forEach(t => {
+    if (deletedItems[t.id]) return;
+    allTotal++;
+    const s = getStatus(t.id);
+    if (s === 'done') allDone++; else if (s === 'studying') allStudying++; else allTodo++;
+    if (s !== 'done' && t.depth === 'deep') allDeepLeft++;
+  }));
+  customSections.forEach(sec => sec.items.forEach(t => {
+    allTotal++;
+    const s = getStatus(t.id);
+    if (s === 'done') allDone++; else if (s === 'studying') allStudying++; else allTodo++;
+    if (s !== 'done' && t.depth === 'deep') allDeepLeft++;
+  }));
+
+  const order = getOrderedSections();
+
+  order.forEach((secId, idx) => {
+    const sec = getSectionById(secId);
+    if (!sec) return;
+    const isCustom = !!customSections.find(s => s.id === secId);
+    const topics = isCustom ? sec.items : sec.topics;
+    const secName = isCustom ? sec.name : sec.section;
+
+    // Filter topics
+    const visible = topics.filter(t => {
+      if (deletedItems[t.id]) return false;
+      const s = getStatus(t.id);
+      if (currentFilter === 'all') return true;
+      if (currentFilter === 'deep') return t.depth === 'deep' && s !== 'done';
+      if (currentFilter === 'concept') return t.depth === 'concept';
+      return s === currentFilter;
+    });
+    if (!isCustom && !visible.length) return;
+
+    const moveUpDis   = idx === 0 ? 'opacity:0.25;pointer-events:none;' : '';
+    const moveDownDis = idx === order.length - 1 ? 'opacity:0.25;pointer-events:none;' : '';
+
+    html += `<div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>${secName.replace(/</g,'&lt;')}</span>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button onclick="moveSection('${secId}',-1)" title="Move up" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;${moveUpDis}">▲</button>
+          <button onclick="moveSection('${secId}',1)"  title="Move down" style="background:none;border:1px solid #2d3148;color:#64748b;cursor:pointer;font-size:0.75rem;padding:2px 7px;border-radius:4px;${moveDownDis}">▼</button>
+          ${isCustom ? `<button onclick="deleteSection('${secId}')" style="background:none;border:none;color:#374151;cursor:pointer;font-size:0.75rem;padding:2px 6px;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#374151'">✕</button>` : ''}
+        </div>
+      </div>`;
+
+    visible.forEach((t, idx) => { html += renderTopicBlock(t, secId, isCustom, idx, visible.length); });
+
+    if (isCustom) {
+      html += `<div class="add-item-form">
+        <div class="add-item-form-row">
+          <input id="new-item-name-${secId}" class="form-input" placeholder="Item name…" onkeydown="handleNewItemKey(event,'${secId}')">
+          <select id="new-item-depth-${secId}" class="form-select">
+            <option value="deep">✅ Deep</option>
+            <option value="concept">⚠️ Concept</option>
+          </select>
+        </div>
+        <div class="add-item-form-row">
+          <input id="new-item-note-${secId}" class="form-input" placeholder="Note / what to know (optional)…" onkeydown="handleNewItemKey(event,'${secId}')">
+          <button class="btn-primary" onclick="addCustomItem('${secId}')">+ Add item</button>
+        </div>
+      </div>`;
+    }
+
+    html += '</div>';
+  });
+
+  // ── New section footer ──
+  html += `<div class="add-section-box">
+    <div class="add-section-box-title">Add New Section</div>
+    <div class="add-section-row">
+      <input id="new-section-input" class="form-input" placeholder="Section name…" onkeydown="if(event.key==='Enter') addSection()">
+      <button class="btn-primary" onclick="addSection()">+ Add section</button>
+    </div>
+  </div>`;
+
+  main.innerHTML = html;
+  const pct = allTotal ? Math.round(allDone / allTotal * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `${allDone} / ${allTotal} done (${pct}%)`;
+  document.getElementById('stat-done').textContent = allDone;
+  document.getElementById('stat-studying').textContent = allStudying;
+  document.getElementById('stat-todo').textContent = allTodo;
+  document.getElementById('stat-deep').textContent = allDeepLeft;
+}
+
+render();
+</script>
+
+
+</body></html>

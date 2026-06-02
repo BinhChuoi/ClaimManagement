@@ -1,0 +1,100 @@
+pg_query_throughput:
+  query: |
+    SELECT
+      SUM(calls)           AS total_calls,
+      SUM(total_exec_time) AS total_exec_ms,
+      SUM(rows)            AS total_rows,
+      AVG(mean_exec_time)  AS overall_avg_ms
+    FROM pg_stat_statements
+    WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
+  metrics:
+    - total_calls:
+        usage: COUNTER
+        description: Total query calls
+    - total_exec_ms:
+        usage: COUNTER
+        description: Total execution time ms
+    - total_rows:
+        usage: COUNTER
+        description: Total rows processed
+    - overall_avg_ms:
+        usage: GAUGE
+        description: Overall avg latency ms
+
+pg_write_latency:
+  query: |
+    SELECT
+      SUM(calls)                    AS write_calls,
+      COALESCE(AVG(mean_exec_time), 0) AS write_avg_ms,
+      COALESCE(MAX(max_exec_time),  0) AS write_max_ms,
+      COALESCE(MAX(stddev_exec_time), 0) AS write_stddev_ms
+    FROM pg_stat_statements
+    WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
+      AND (query ILIKE 'insert%' OR query ILIKE 'update%' OR query ILIKE 'delete%')
+  metrics:
+    - write_calls:
+        usage: COUNTER
+        description: Total write calls
+    - write_avg_ms:
+        usage: GAUGE
+        description: Avg write latency ms
+    - write_max_ms:
+        usage: GAUGE
+        description: Max write latency ms
+    - write_stddev_ms:
+        usage: GAUGE
+        description: Write latency stddev ms
+
+pg_read_latency:
+  query: |
+    SELECT
+      SUM(calls)                    AS read_calls,
+      COALESCE(AVG(mean_exec_time), 0) AS read_avg_ms,
+      COALESCE(MAX(max_exec_time),  0) AS read_max_ms
+    FROM pg_stat_statements
+    WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
+      AND query ILIKE 'select%'
+  metrics:
+    - read_calls:
+        usage: COUNTER
+        description: Total read calls
+    - read_avg_ms:
+        usage: GAUGE
+        description: Avg read latency ms
+    - read_max_ms:
+        usage: GAUGE
+        description: Max read latency ms
+
+pg_slow_queries:
+  query: |
+    SELECT
+      LEFT(query, 80) AS query,
+      CASE
+        WHEN query ILIKE 'insert%' OR query ILIKE 'update%' OR query ILIKE 'delete%' THEN 'WRITE'
+        WHEN query ILIKE 'select%' THEN 'READ'
+        ELSE 'OTHER'
+      END AS operation_type,
+      calls,
+      mean_exec_time  AS avg_ms,
+      max_exec_time   AS max_ms
+    FROM pg_stat_statements
+    WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
+      AND calls > 5
+    ORDER BY mean_exec_time DESC
+    LIMIT 15
+  metrics:
+    - query:
+        usage: LABEL
+        description: Query text
+    - operation_type:
+        usage: LABEL
+        description: READ or WRITE
+    - calls:
+        usage: COUNTER
+        description: Execution count
+    - avg_ms:
+        usage: GAUGE
+        description: Mean latency ms
+    - max_ms:
+        usage: GAUGE
+        description: Max latency ms

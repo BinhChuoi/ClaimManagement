@@ -1,0 +1,82 @@
+services:
+
+  # ── PostgreSQL ────────────────────────────────────────────────
+  db:
+    build: .
+    container_name: invoice-test-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test123
+      POSTGRES_DB: invoices
+    command: >
+      postgres
+        -c shared_buffers=256MB
+        -c work_mem=4MB
+        -c checkpoint_completion_target=0.9
+        -c log_checkpoints=on
+        -c log_min_duration_statement=500
+        -c shared_preload_libraries=pg_stat_statements
+        -c pg_stat_statements.track=all
+        -c pg_stat_statements.max=10000
+    volumes:
+      - invoice_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d invoices"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── PostgreSQL Exporter (exposes PG metrics for Prometheus) ──
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:test123@db:5432/invoices?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./monitoring/queries.yaml:/etc/postgres-exporter/queries.yaml
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Prometheus (scrapes metrics every 15s) ────────────────────
+  prometheus:
+    image: quay.io/prometheus/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - postgres-exporter
+
+  # ── Grafana (dashboards on port 3000) ─────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+volumes:
+  invoice_pgdata:
+  prometheus_data:
+  grafana_data:
