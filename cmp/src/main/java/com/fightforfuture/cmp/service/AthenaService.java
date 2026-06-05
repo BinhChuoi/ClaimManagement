@@ -206,12 +206,6 @@ public class AthenaService {
                 .invoiceQuantity(parseBigDecimal(r.get("invoice_quantity")))
                 .submittedQuantity(parseBigDecimal(r.get("submitted_quantity")))
                 .netValue(parseBigDecimal(r.get("net_value")))
-                // return order
-                .claimNumber(r.get("claim_number"))
-                .returnOrderNo(r.get("return_order_no"))
-                .returnOrderStatus(r.get("return_order_status"))
-                .returnOrderSapType(r.get("return_order_sap_type"))
-                .returnOrderPhysicalReturn(parseInteger(r.get("return_order_physical_return")))
                 .build();
     }
 
@@ -219,10 +213,6 @@ public class AthenaService {
 
     private Long parseLong(String v) {
         return (v == null || v.isBlank()) ? null : Long.parseLong(v.trim());
-    }
-
-    private Integer parseInteger(String v) {
-        return (v == null || v.isBlank()) ? null : Integer.parseInt(v.trim());
     }
 
     private BigDecimal parseBigDecimal(String v) {

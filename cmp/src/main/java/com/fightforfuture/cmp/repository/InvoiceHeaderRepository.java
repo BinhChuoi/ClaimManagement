@@ -12,6 +12,9 @@ import java.util.List;
 @Repository
 public interface InvoiceHeaderRepository extends JpaRepository<InvoiceHeader, Long> {
 
+    @Query("SELECT COALESCE(MAX(h.invoiceNumber), 0) FROM InvoiceHeader h")
+    long findMaxInvoiceNumber();
+
     // Upsert: insert or update on duplicate invoice_number
     @Modifying
     @Query(value = """
