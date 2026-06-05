@@ -1,11 +1,13 @@
 package com.fightforfuture.cmp.config;
 
+import jakarta.persistence.EntityManagerFactory;
 import org.springframework.batch.core.configuration.support.JdbcDefaultBatchConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Isolation;
 
@@ -74,11 +76,26 @@ public class JdbcBatchConfiguration extends JdbcDefaultBatchConfiguration {
     @Autowired
     private DataSource dataSource;
 
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
+
+    /**
+     * Explicitly declare JPA transaction manager as @Primary so Spring always
+     * resolves this one for @Transactional methods in services — regardless of
+     * which machine or Spring Boot minor version is running.
+     *
+     * Without @Primary, having two PlatformTransactionManager beans causes
+     * "expected single matching bean but found 2" on some environments.
+     */
+    @Bean
+    @Primary
+    public PlatformTransactionManager transactionManager() {
+        return new JpaTransactionManager(entityManagerFactory);
+    }
+
     /**
      * Dedicated transaction manager for Spring Batch metadata (BATCH_* tables).
      * Uses plain JDBC — no Hibernate / JPA session involved.
-     * Named "batchTransactionManager" so it doesn't conflict with the
-     * JpaTransactionManager that Spring Boot auto-configures as primary.
      */
     @Bean("batchTransactionManager")
     public PlatformTransactionManager batchTransactionManager() {
