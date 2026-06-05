@@ -26,18 +26,6 @@ public class AthenaService {
     // ── Public API ────────────────────────────────────────────────────────────
 
     /**
-     * Delta load — fetch invoices where invoice_number > fromInvoiceNumber.
-     * Used for ongoing hourly sync.
-     */
-    public List<AthenaInvoiceRow> fetchDelta(long fromInvoiceNumber) {
-        log.info("[Athena] Delta query: invoice_number > {}", fromInvoiceNumber);
-        String sql = String.format(
-                "SELECT * FROM %s.v_invoice_delta WHERE invoice_number > %d",
-                props.getDatabase(), fromInvoiceNumber);
-        return executeAndMap(sql);
-    }
-
-    /**
      * Initial load — fetch all invoices for a specific year/month partition.
      * Called month by month to avoid loading millions of rows in one shot.
      */

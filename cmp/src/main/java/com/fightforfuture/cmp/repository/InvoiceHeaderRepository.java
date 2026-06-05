@@ -7,13 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
 public interface InvoiceHeaderRepository extends JpaRepository<InvoiceHeader, Long> {
-
-    @Query("SELECT COALESCE(MAX(h.invoiceNumber), 0) FROM InvoiceHeader h")
-    long findMaxInvoiceNumber();
 
     // Upsert: insert or update on duplicate invoice_number
     @Modifying
