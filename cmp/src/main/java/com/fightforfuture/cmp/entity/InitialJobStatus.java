@@ -1,6 +1,7 @@
 package com.fightforfuture.cmp.entity;
 
-public enum SyncStatus {
+public enum InitialJobStatus {
+    PENDING,
     RUNNING,
     COMPLETED,
     FAILED

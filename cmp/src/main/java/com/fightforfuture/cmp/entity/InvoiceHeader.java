@@ -40,7 +40,6 @@ public class InvoiceHeader extends BaseEntity implements Persistable<Long> {
     @Column(name = "country_code", length = 5)
     private String countryCode;
 
-    // ── Relationships ─────────────────────────────────────────
     @OneToMany(
         mappedBy      = "invoiceHeader",
         cascade       = CascadeType.ALL,
@@ -50,17 +49,6 @@ public class InvoiceHeader extends BaseEntity implements Persistable<Long> {
     @Builder.Default
     private List<InvoiceLineItem> lineItems = new ArrayList<>();
 
-    @OneToOne(
-        mappedBy      = "invoiceHeader",
-        cascade       = CascadeType.PERSIST,   // do NOT cascade remove (ON DELETE SET NULL)
-        fetch         = FetchType.LAZY
-    )
-    private ReturnOrder returnOrder;
-
-    // ── Persistable: prevents JPA from doing SELECT before INSERT ─────────────
-    // Since invoice_number is a manually assigned PK (not @GeneratedValue),
-    // Spring Data JPA would always SELECT first to check existence.
-    // isNew = true tells it to go straight to INSERT.
     @Transient
     @Builder.Default
     private boolean isNew = true;

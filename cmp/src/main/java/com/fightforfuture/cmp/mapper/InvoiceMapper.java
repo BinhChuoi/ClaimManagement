@@ -3,7 +3,6 @@ package com.fightforfuture.cmp.mapper;
 import com.fightforfuture.cmp.dto.AthenaInvoiceRow;
 import com.fightforfuture.cmp.entity.InvoiceHeader;
 import com.fightforfuture.cmp.entity.InvoiceLineItem;
-import com.fightforfuture.cmp.entity.ReturnOrder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -30,15 +29,6 @@ public class InvoiceMapper {
                 .invoiceQuantity(row.getInvoiceQuantity())
                 .submittedQuantity(row.getSubmittedQuantity())
                 .netValue(row.getNetValue())
-                .build();
-    }
-
-    public ReturnOrder toReturnOrder(AthenaInvoiceRow row, InvoiceHeader header) {
-        return ReturnOrder.builder()
-                .returnOrderRequestId(row.getReturnOrderNo())
-                .invoiceHeader(header)
-                .returnOrderStatus(row.getReturnOrderStatus())
-                .returnOrderNo(row.getReturnOrderNo())
                 .build();
     }
 }

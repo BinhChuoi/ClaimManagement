@@ -1,0 +1,88 @@
+{
+  "title": "CMP Dashboard",
+  "uid": "cmp-dashboard",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Application Manager",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 28 },
+      "options": {
+        "mode": "html",
+        "content": "<iframe src=\"http://localhost:8088\" width=\"100%\" height=\"680px\" frameborder=\"0\" style=\"border:none;\"></iframe>"
+      }
+    },
+    {
+      "id": 2, "type": "stat", "title": "Completed",
+      "gridPos": { "x": 12, "y": 0, "w": 3, "h": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" },
+      "targets": [{ "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" }, "rawSql": "SELECT COUNT(*) FROM initial_job WHERE status='COMPLETED'", "format": "table", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "green", "mode": "fixed" } } }
+    },
+    {
+      "id": 3, "type": "stat", "title": "Pending",
+      "gridPos": { "x": 15, "y": 0, "w": 3, "h": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" },
+      "targets": [{ "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" }, "rawSql": "SELECT COUNT(*) FROM initial_job WHERE status='PENDING'", "format": "table", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "blue", "mode": "fixed" } } }
+    },
+    {
+      "id": 4, "type": "stat", "title": "Running",
+      "gridPos": { "x": 18, "y": 0, "w": 3, "h": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" },
+      "targets": [{ "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" }, "rawSql": "SELECT COUNT(*) FROM initial_job WHERE status='RUNNING'", "format": "table", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "orange", "mode": "fixed" } } }
+    },
+    {
+      "id": 5, "type": "stat", "title": "Failed",
+      "gridPos": { "x": 21, "y": 0, "w": 3, "h": 4 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" },
+      "targets": [{ "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" }, "rawSql": "SELECT COUNT(*) FROM initial_job WHERE status='FAILED'", "format": "table", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "red", "mode": "fixed" } } }
+    },
+    {
+      "id": 6, "type": "table", "title": "Initial Jobs",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 12 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" },
+      "targets": [{
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" },
+        "rawSql": "SELECT job_key, status, COALESCE(records_fetched,0) AS records, EXTRACT(EPOCH FROM (COALESCE(completed_at,NOW())-COALESCE(started_at,NOW())))::INT AS duration_sec, retry_count FROM initial_job ORDER BY start_date",
+        "format": "table", "refId": "A"
+      }]
+    },
+    {
+      "id": 7, "type": "table", "title": "Batch Executions",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 12 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" },
+      "targets": [{
+        "datasource": { "type": "grafana-postgresql-datasource", "uid": "${ds_pg}" },
+        "rawSql": "SELECT e.job_execution_id AS id, e.status, e.exit_code, e.create_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS created, e.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh' AS ended, p.parameter_value AS job_ids FROM batch_job_execution e LEFT JOIN batch_job_execution_params p ON e.job_execution_id=p.job_execution_id AND p.parameter_name='jobIds' ORDER BY e.create_time DESC LIMIT 20",
+        "format": "table", "refId": "A"
+      }]
+    },
+    {
+      "id": 8, "type": "text", "title": "Job Control",
+      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 12 },
+      "options": {
+        "mode": "html",
+        "content": "<iframe src=\"http://localhost:8080/batch-control.html\" width=\"100%\" height=\"280px\" frameborder=\"0\" style=\"border:none;\"></iframe>"
+      }
+    }
+  ],
+  "templating": {
+    "list": [{
+      "name": "ds_pg",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "current": { "text": "PostgreSQL", "value": "PCC52D03280B7034C" },
+      "hide": 2
+    }]
+  }
+}

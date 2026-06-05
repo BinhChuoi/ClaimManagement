@@ -1,5 +1,60 @@
 services:
 
+  # ── CMP Spring Boot App (scalable) ───────────────────────────
+  cmp-app:
+    build:
+      context: ./cmp
+      dockerfile: Dockerfile
+    environment:
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: test123
+      AWS_REGION: us-east-1
+      ENABLE_INITIAL_LOAD: "true"
+      # Point AWS SDK to the mounted credentials — works regardless of which user runs the JVM
+      AWS_SHARED_CREDENTIALS_FILE: /app/.aws/credentials
+      AWS_CONFIG_FILE: /app/.aws/config
+    volumes:
+      - ${USERPROFILE}/.aws:/app/.aws:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+    deploy:
+      replicas: 2
+    labels:
+      - "traefik.enable=true"
+      # Route all traffic through Traefik
+      - "traefik.http.routers.cmp.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.cmp.entrypoints=web"
+      - "traefik.http.services.cmp.loadbalancer.server.port=8080"
+      # Active readiness health check — Traefik polls this every 10s
+      # Only routes to instances that return 200 {"status":"UP"}
+      - "traefik.http.services.cmp.loadbalancer.healthcheck.path=/actuator/health/readiness"
+      - "traefik.http.services.cmp.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.cmp.loadbalancer.healthcheck.timeout=5s"
+
+  # ── Traefik load balancer (active health checks) ─────────────
+  # Actively polls /actuator/health/readiness on each cmp-app replica
+  # Auto-discovers new replicas when you docker compose up --scale cmp-app=N
+  traefik:
+    image: traefik:v3
+    container_name: cmp-traefik
+    ports:
+      - "8080:80"     # app traffic
+      - "8081:8081"   # Traefik dashboard (http://localhost:8081)
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.traefik.address=:8081"
+      - "--log.level=WARN"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: on-failure
+
   # ── PostgreSQL ────────────────────────────────────────────────
   db:
     build: .
@@ -70,6 +125,10 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin123
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_INSTALL_PLUGINS: ""
+      GF_PANELS_DISABLE_SANITIZE_HTML: "true"
+      # Allow iframes in text panels to load from localhost:8088 (App Manager)
+      GF_SECURITY_CONTENT_SECURITY_POLICY: "false"
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
