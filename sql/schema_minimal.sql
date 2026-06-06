@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS invoices_header (
 
 -- ── Return orders ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS cc_return_order (
-    id                      BIGINT          PRIMARY KEY,
+    id                      UUID            PRIMARY KEY,
     return_order_request_id VARCHAR(100)    NOT NULL UNIQUE,
     return_order_no         VARCHAR(20),
     return_order_status     VARCHAR(20)     NOT NULL,
@@ -45,8 +45,8 @@ CREATE INDEX IF NOT EXISTS idx_ro_claim_id   ON cc_return_order (claim_id);
 
 -- ── Return order details (claim items / part IDs covered) ─────
 CREATE TABLE IF NOT EXISTS cc_return_order_detail (
-    id              BIGINT          PRIMARY KEY,
-    return_order_id BIGINT          NOT NULL
+    id              UUID            PRIMARY KEY,
+    return_order_id UUID            NOT NULL
                         REFERENCES cc_return_order (id)
                         ON DELETE CASCADE,
     link_id         VARCHAR(100)    NOT NULL,
@@ -59,21 +59,21 @@ CREATE TABLE IF NOT EXISTS cc_return_order_detail (
 CREATE INDEX IF NOT EXISTS idx_rod_return_order_id ON cc_return_order_detail (return_order_id);
 CREATE INDEX IF NOT EXISTS idx_rod_link_id         ON cc_return_order_detail (link_id);
 
--- ── Child: line items (many per invoice) ─────────────────────
+-- ── Child: line items (composite PK: invoice_number + line_item_no) ───
 CREATE TABLE IF NOT EXISTS invoices_line_items (
-    id              BIGSERIAL       PRIMARY KEY,
-    invoice_number  BIGINT          NOT NULL
-                        REFERENCES invoices_header (invoice_number)
-                        ON DELETE CASCADE,
-    line_item_no    VARCHAR(10),
-    description     VARCHAR(100),
-    item_category   VARCHAR(10),
+    invoice_number      BIGINT          NOT NULL
+                            REFERENCES invoices_header (invoice_number)
+                            ON DELETE CASCADE,
+    line_item_no        VARCHAR(10)     NOT NULL,
+    description         VARCHAR(100),
+    item_category       VARCHAR(10),
     invoice_quantity    NUMERIC(10, 3),
     submitted_quantity  NUMERIC(10, 3),
-    net_value       NUMERIC(15, 2),
-    synced_at       TIMESTAMP       DEFAULT NOW(),
-    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-    created_by      VARCHAR(50),
-    updated_by      VARCHAR(50)
+    net_value           NUMERIC(15, 2),
+    synced_at           TIMESTAMP       DEFAULT NOW(),
+    created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    created_by          VARCHAR(50),
+    updated_by          VARCHAR(50),
+    PRIMARY KEY (invoice_number, line_item_no)
 );

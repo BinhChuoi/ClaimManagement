@@ -16,7 +16,8 @@ import java.time.LocalDate;
 public class InitialJob extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "initial_job_seq")
+    @SequenceGenerator(name = "initial_job_seq", sequenceName = "initial_job_id_seq", allocationSize = 5)
     private Long id;
 
     @Column(name = "start_date", nullable = false)

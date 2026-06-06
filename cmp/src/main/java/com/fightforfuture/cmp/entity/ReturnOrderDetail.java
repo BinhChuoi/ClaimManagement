@@ -1,9 +1,10 @@
 package com.fightforfuture.cmp.entity;
 
-import com.fightforfuture.cmp.util.SnowflakeId;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.domain.Persistable;
+import org.hibernate.annotations.UuidGenerator;
+
+import java.util.UUID;
 
 @Entity
 @Table(
@@ -18,11 +19,12 @@ import org.springframework.data.domain.Persistable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReturnOrderDetail extends BaseEntity implements Persistable<Long> {
+public class ReturnOrderDetail extends BaseEntity {
 
     @Id
-    @Column(name = "id")
-    private Long id;
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
+    @Column(name = "id", columnDefinition = "uuid")
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "return_order_id", nullable = false)
@@ -31,21 +33,4 @@ public class ReturnOrderDetail extends BaseEntity implements Persistable<Long> {
     /** Claim item / part ID this return order line covers */
     @Column(name = "link_id", nullable = false, length = 100)
     private String linkId;
-
-    // ── Persistable ───────────────────────────────────────────────────────────
-
-    @Transient
-    @Builder.Default
-    private boolean isNew = true;
-
-    @PostLoad
-    void markNotNew() { this.isNew = false; }
-
-    @PrePersist
-    void assignId() {
-        if (id == null) id = SnowflakeId.next();
-    }
-
-    @Override public Long getId()    { return id; }
-    @Override public boolean isNew() { return isNew; }
 }

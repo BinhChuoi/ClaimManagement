@@ -6,6 +6,7 @@ import com.fightforfuture.cmp.entity.InvoiceLineItem;
 import com.fightforfuture.cmp.mapper.InvoiceMapper;
 import com.fightforfuture.cmp.repository.InvoiceHeaderRepository;
 import com.fightforfuture.cmp.repository.InvoiceLineItemRepository;
+import io.micrometer.core.annotation.Timed;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.Comparator;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +31,7 @@ public class InvoicePersistenceService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Timed(value = "invoice.persistence.save", description = "Time taken to persist a chunk of invoice rows")
     @Transactional
     public int save(List<AthenaInvoiceRow> rows) {
         if (rows.isEmpty()) return 0;
@@ -47,11 +48,16 @@ public class InvoicePersistenceService {
                 .collect(Collectors.toList());
         upsertHeaders(sortedHeaders);
 
-        // ── 3. Save line items ────────────────────────────────
-        List<InvoiceLineItem> lineItems = rows.stream()
-                .map(row -> invoiceMapper.toLineItem(row, headerMap.get(row.getInvoiceNumber())))
-                .collect(Collectors.toList());
-        saveInBatches(lineItems);
+        // ── 3. Deduplicate + upsert line items ───────────────
+        // S3 source data can contain duplicate (invoice_number, line_item_no) pairs.
+        // LinkedHashMap preserves first-seen order and drops subsequent duplicates.
+        Map<String, InvoiceLineItem> lineItemMap = new LinkedHashMap<>();
+        for (AthenaInvoiceRow row : rows) {
+            String key = row.getInvoiceNumber() + "|" + row.getLineItemNo();
+            lineItemMap.putIfAbsent(key, invoiceMapper.toLineItem(row, headerMap.get(row.getInvoiceNumber())));
+        }
+        List<InvoiceLineItem> lineItems = new ArrayList<>(lineItemMap.values());
+        upsertLineItems(lineItems);
 
         log.info("[Persist] Saved {} headers, {} line items", headerMap.size(), lineItems.size());
         return lineItems.size();
@@ -67,11 +73,11 @@ public class InvoicePersistenceService {
         }
     }
 
-    private void saveInBatches(List<InvoiceLineItem> entities) {
+    private void upsertLineItems(List<InvoiceLineItem> entities) {
         int total = entities.size();
         for (int i = 0; i < total; i += BATCH_SIZE) {
             List<InvoiceLineItem> batch = entities.subList(i, Math.min(i + BATCH_SIZE, total));
-            invoiceLineItemRepository.saveAll(batch);
+            batch.forEach(invoiceLineItemRepository::upsert);
             entityManager.flush();
             entityManager.clear();
         }

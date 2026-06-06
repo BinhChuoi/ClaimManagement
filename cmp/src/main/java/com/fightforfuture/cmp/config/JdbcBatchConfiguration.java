@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Isolation;
@@ -80,26 +79,38 @@ public class JdbcBatchConfiguration extends JdbcDefaultBatchConfiguration {
     private EntityManagerFactory entityManagerFactory;
 
     /**
-     * Explicitly declare JPA transaction manager as @Primary so Spring always
-     * resolves this one for @Transactional methods in services — regardless of
-     * which machine or Spring Boot minor version is running.
+     * Primary transaction manager for all @Transactional service methods.
      *
-     * Without @Primary, having two PlatformTransactionManager beans causes
-     * "expected single matching bean but found 2" on some environments.
+     * JpaTransactionManager gets its DataSource indirectly through the
+     * EntityManagerFactory — it does NOT need setDataSource() called explicitly.
+     * The connection chain is:
+     *
+     *   JpaTransactionManager → EntityManagerFactory → Hibernate → HikariCP → DB
+     *
+     * ── DO NOT call tm.setDataSource(dataSource) here ────────────────────────
+     *
+     * setDataSource() tells JpaTransactionManager to also bind the DataSource
+     * to the thread (TransactionSynchronizationManager) when a JPA transaction
+     * opens. Its only purpose is to let JdbcTemplate share the same physical
+     * connection as JPA within a single @Transactional method.
+     *
+     * In this project, services use JPA only — never JdbcTemplate inside a
+     * @Transactional method. So setDataSource() provides no benefit and causes
+     * a hard runtime conflict:
+     *
+     *   Spring Batch chunk starts
+     *     → batchTransactionManager binds DataSource to thread
+     *     → service @Transactional starts (JpaTransactionManager)
+     *     → JpaTransactionManager tries to bind same DataSource to thread
+     *     → IllegalStateException: Already value [...] bound to thread
+     *
+     * Two transaction managers, two independent connections from HikariCP — by design.
+     * batch TM owns the DataSource slot; JPA TM owns the EntityManagerFactory slot.
      */
     @Bean
     @Primary
     public PlatformTransactionManager transactionManager() {
         return new JpaTransactionManager(entityManagerFactory);
-    }
-
-    /**
-     * Dedicated transaction manager for Spring Batch metadata (BATCH_* tables).
-     * Uses plain JDBC — no Hibernate / JPA session involved.
-     */
-    @Bean("batchTransactionManager")
-    public PlatformTransactionManager batchTransactionManager() {
-        return new DataSourceTransactionManager(dataSource);
     }
 
     @Override
@@ -108,12 +119,23 @@ public class JdbcBatchConfiguration extends JdbcDefaultBatchConfiguration {
     }
 
     /**
-     * Use the dedicated JDBC transaction manager, not the JPA one.
-     * Spring Batch metadata has no JPA entities — no need for Hibernate.
+     * Use the JPA transaction manager for Spring Batch chunks.
+     *
+     * In Spring Framework 7, JpaTransactionManager automatically binds the
+     * underlying DataSource connection to the thread when it opens a transaction.
+     * A separate DataSourceTransactionManager for the same DataSource would try
+     * to bind the same key a second time → IllegalStateException.
+     *
+     * Using a single JpaTransactionManager for everything avoids the conflict:
+     * - Batch chunk opens a JPA transaction → DataSource connection bound once
+     * - InvoicePersistenceService.save() (@Transactional REQUIRED) joins the
+     *   existing chunk transaction — no new transaction, no second binding
+     * - Spring Batch metadata writes (BATCH_* tables) go through the same
+     *   JPA-managed connection transparently via DataSourceUtils
      */
     @Override
     protected PlatformTransactionManager getTransactionManager() {
-        return batchTransactionManager();
+        return transactionManager();
     }
 
     @Override

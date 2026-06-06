@@ -2,26 +2,26 @@ package com.fightforfuture.cmp.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.domain.Persistable;
 
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "invoices_line_items")
+@IdClass(InvoiceLineItemId.class)
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InvoiceLineItem extends BaseEntity {
+public class InvoiceLineItem extends BaseEntity implements Persistable<InvoiceLineItemId> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invoice_number", nullable = false)
     private InvoiceHeader invoiceHeader;
 
+    @Id
     @Column(name = "line_item_no", length = 10)
     private String lineItemNo;
 
@@ -39,4 +39,24 @@ public class InvoiceLineItem extends BaseEntity {
 
     @Column(name = "net_value", precision = 15, scale = 2)
     private BigDecimal netValue;
+
+    // ── Persistable — skip SELECT before INSERT since key comes from source data ──
+
+    @Transient
+    @Builder.Default
+    private boolean isNew = true;
+
+    @PostLoad
+    void markNotNew() { this.isNew = false; }
+
+    @Override
+    public InvoiceLineItemId getId() {
+        return new InvoiceLineItemId(
+                invoiceHeader != null ? invoiceHeader.getInvoiceNumber() : null,
+                lineItemNo
+        );
+    }
+
+    @Override
+    public boolean isNew() { return isNew; }
 }

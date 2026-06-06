@@ -5,8 +5,10 @@
 -- Runs automatically on first container startup (02_initial_jobs.sql).
 -- ============================================================
 
+CREATE SEQUENCE IF NOT EXISTS initial_job_id_seq INCREMENT BY 5 START WITH 1;
+
 CREATE TABLE IF NOT EXISTS initial_job (
-    id              BIGSERIAL       PRIMARY KEY,
+    id              BIGINT          PRIMARY KEY DEFAULT nextval('initial_job_id_seq'),
 
     -- Which entity type this job processes (e.g. 'INVOICE', 'RETURN_ORDER')
     job_type        VARCHAR(50)     NOT NULL,
